@@ -4,7 +4,6 @@ import subprocess
 class Graphset(object):
     pass
 
-
 class Uptime(Graphset):
     def poll(self, tick_time):
         raw = subprocess.check_output('uptime').decode("utf8").replace(',', '')
@@ -15,7 +14,7 @@ class Uptime(Graphset):
         else:
             hours, minutes = map(int,raw.split()[4].split(':'))
         #totalsecs = ((days * 24 + hours) * 60 + minutes) * 60
-        return days + hours / 24.0 + minutes / 3600.0
+        return days + hours / 24.0 + minutes / 1440.0
 
 class SystemLoad(Graphset):
     def poll(self, tick_time):
