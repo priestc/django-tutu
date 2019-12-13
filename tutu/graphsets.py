@@ -2,7 +2,8 @@ import os
 import subprocess
 
 class Graphset(object):
-    pass
+    def get_name(self):
+        return self.__class__.__name__
 
 class Uptime(Graphset):
     def poll(self, tick_time):
@@ -13,7 +14,6 @@ class Uptime(Graphset):
             minutes = int(raw[4])
         else:
             hours, minutes = map(int,raw.split()[4].split(':'))
-        #totalsecs = ((days * 24 + hours) * 60 + minutes) * 60
         return days + hours / 24.0 + minutes / 1440.0
 
 class SystemLoad(Graphset):
