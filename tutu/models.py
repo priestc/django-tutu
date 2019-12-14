@@ -22,17 +22,28 @@ class Tick(models.Model):
         for graphset in graphsets:
             graphset_instance = graphset()
             t0 = time.time()
-            result = graphset_instance.poll(tick_time)
+            error = ""
+            result = ""
+            try:
+                result = graphset_instance.poll(tick_time)
+            except Exception as exc:
+                error = "%s: %s" % (exc.__class__.__name__, str(exc))
+
             seconds = time.time() - t0
             PollResult.objects.create(
                 graphset_name=graphset_instance.get_name(),
                 tick=tick,
-                data=json.dumps(result),
+                success=json.dumps(result) if result else '',
+                error=error,
                 seconds_to_poll=seconds
             )
 
 class PollResult(models.Model):
     graphset_name = models.TextField()
     tick = models.ForeignKey(Tick)
-    data = models.TextField()
+    success = models.TextField()
+    error = models.TextField()
     seconds_to_poll = models.FloatField()
+
+    def __unicode__(self):
+        return "%s (%s)" % (self.graphset_name, bool(self.success))
