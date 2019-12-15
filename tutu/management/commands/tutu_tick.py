@@ -7,4 +7,4 @@ class Command(BaseCommand):
     help = 'Closes the specified poll for voting'
 
     def handle(self, *args, **options):
-        Tick.make_tick(settings.INSTALLED_GRAPHSETS)
+        Tick.make_tick(settings.INSTALLED_GRAPHSETS, test=True)
