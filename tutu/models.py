@@ -4,6 +4,7 @@ from django.utils import timezone
 import socket
 import time
 import json
+from graphsets import Graphset
 
 class Tick(models.Model):
     machine = models.TextField()
@@ -21,9 +22,15 @@ class Tick(models.Model):
             tick = cls.objects.create(
                 machine=machine, date=tick_time
             )
-        
+
         for graphset in graphsets:
-            graphset_instance = graphset()
+            if isinstance(graphset, Graphset):
+                graphset_instance = graphset
+            elif isinstance(graphset, type) and issubclass(graphset, Graphset):
+                graphset_instance = graphset()
+            else:
+                raise ValueError("Must be a Graphset class or instance")
+
             t0 = time.time()
             success = True
             try:

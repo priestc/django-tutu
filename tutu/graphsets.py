@@ -2,6 +2,10 @@ import os
 import subprocess
 
 class Graphset(object):
+
+    def __init__(self, poll_skip=0):
+        self.poll_skip = poll_skip
+
     def get_name(self):
         return self.__class__.__name__
 
