@@ -4,15 +4,15 @@ from tutu.models import Tick
 
 class TickAdmin(admin.ModelAdmin):
     list_display = [
-        'machine', 'date', 'number_of_successful_polls',
+        'id', 'machine', 'date', 'number_of_successful_polls',
         'number_of_error_polls', 'total_time'
     ]
     ordering = ('-date', )
     readonly_fields = ("poll_result", )
 
     def total_time(self, tick):
-        total = tick.pollresult_set.aggregate(x=Sum('seconds_to_poll'))
-        return "%.2f" % total['x']
+        total = tick.pollresult_set.aggregate(x=Sum('seconds_to_poll'))['x']
+        return "0" if not total else "%.2f" % total
 
     def number_of_successful_polls(self, tick):
         return tick.pollresult_set.exclude(success=False).count()
