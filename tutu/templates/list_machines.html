@@ -1,0 +1,11 @@
+<html>
+
+  <body>
+    <h1>List Machines</h1>
+
+    {% for machine in machine_list %}
+      <a href="{% url 'show_machine_graphs' machine %}">{{ machine }}</a><br>
+    {% endfor %}
+
+  </body>
+</html>
