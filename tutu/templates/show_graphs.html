@@ -4,7 +4,7 @@
     <h1>Show Graphs for {{ machine }}</h1>
 
     {% for graphset in graphset_list %}
-      {{ graphset }}<br>
+      <a href="{% url 'get_graph_data' machine graphset %}">{{ graphset }}</a><br>
     {% endfor %}
 
   </body>

@@ -75,5 +75,14 @@ class PollResult(models.Model):
     result = models.TextField()
     seconds_to_poll = models.FloatField()
 
+    @classmethod
+    def get_graph_data(cls, machine, graphset):
+        pr = cls.objects.filter(tick__machine=machine, graphset_name=graphset)
+        pr = pr.filter(success=True).values_list('tick__date', 'result')
+        return {
+            'x': [item[0] for item in pr],
+            'y': [json.loads(item[1]) for item in pr]
+        }
+    
     def __unicode__(self):
         return "%s (%s)" % (self.graphset_name, bool(self.success))

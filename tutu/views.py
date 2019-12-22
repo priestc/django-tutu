@@ -1,6 +1,6 @@
-from django.http import HttpResponse, Http404
+from django.http import JsonResponse, Http404
 from django.template.response import TemplateResponse
-from tutu.models import Tick
+from tutu.models import Tick, PollResult
 
 def list_machines(request):
     machine_list = list(Tick.objects.values_list("machine", flat=True).distinct())
@@ -21,4 +21,4 @@ def get_graph_data(request, machine, graphset):
     if not results.exists():
         raise Http404("Graphset not found")
 
-    return HttpResponse(PollResults.get_graph_data(machine, graphset))
+    return JsonResponse(PollResult.get_graph_data(machine, graphset))
