@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django.utils.html import format_html
+
 from django.db.models import Sum
 from tutu.models import Tick
 
@@ -20,9 +22,8 @@ class TickAdmin(admin.ModelAdmin):
     def number_of_error_polls(self, tick):
         count = tick.pollresult_set.filter(success=False).count()
         if count > 0:
-            return "<span style='color:red'>%d</span>" % count
+            return format_html("<span style='color:red'>%d</span>" % count)
         return count
-    number_of_error_polls.allow_tags = True
 
     def poll_result(self, tick):
         lines = []
@@ -34,7 +35,6 @@ class TickAdmin(admin.ModelAdmin):
                 line = "<span style='color: red'>%s</span>" % line
             lines.append(line)
 
-        return "<br>".join(lines)
-    poll_result.allow_tags = True
+        return format_html("<br>".join(lines))
 
 admin.site.register(Tick, TickAdmin)

@@ -1,4 +1,4 @@
-from graphsets import Graphset
+from tutu.graphsets import Graphset
 import datetime
 
 def validate_graphset(graphset):

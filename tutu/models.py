@@ -6,7 +6,7 @@ from django.utils import timezone
 import socket
 import time
 import json
-from utils import validate_graphset
+from tutu.utils import validate_graphset
 
 class Tick(models.Model):
     machine = models.TextField()
@@ -70,7 +70,7 @@ class Tick(models.Model):
 
 class PollResult(models.Model):
     graphset_name = models.TextField()
-    tick = models.ForeignKey(Tick)
+    tick = models.ForeignKey(Tick, on_delete=models.CASCADE)
     success = models.BooleanField()
     result = models.TextField()
     seconds_to_poll = models.FloatField()
@@ -83,6 +83,6 @@ class PollResult(models.Model):
             'x': [item[0] for item in pr],
             'y': [json.loads(item[1]) for item in pr]
         }
-    
+
     def __unicode__(self):
         return "%s (%s)" % (self.graphset_name, bool(self.success))
