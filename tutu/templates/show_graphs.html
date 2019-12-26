@@ -1,19 +1,26 @@
 <html>
   <head>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <style>
+      .graph_container {
+        width: 600px; height: 450px;
+      }
+    </style>
   </head>
   <body>
-    <h1>Show Graphs for {{ machine }}</h1>
+    <h1>Graphs for {{ machine }}</h1>
+    <a href=".">Back to machines</a>
 
     {% for graphset in graphset_list %}
-      <a href="{% url 'get_graph_data' machine graphset %}">{{ graphset }}</a><br>
+      <h2>{{ graphset.title }}</h2>
 
-      <div id="{{ graphset }}" style="width: 600px; height: 450px; border: 1px solid black"></div>
+      <div id="{{ graphset.get_name }}" class="graph_container"></div>
       <script>
-        $.ajax("{% url 'get_graph_data' machine graphset %}").done(function(data){
+        $.ajax("{% url 'get_graph_data' machine graphset.get_name %}").done(function(data){
           Plotly.newPlot(
-            '{{ graphset }}',
-            [{"type": "scatter", "y": data['y'], x=data['x']]}],
+            '{{ graphset.get_name }}',
+            [{"type": "scatter", "y": data['y'], "x": data['x']}],
           );
         })
 

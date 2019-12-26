@@ -2,6 +2,7 @@ import os
 import subprocess
 
 class Graphset(object):
+    title = ""
 
     def __init__(self, poll_skip=0):
         self.poll_skip = poll_skip
@@ -14,6 +15,8 @@ class Graphset(object):
         return None
 
 class Uptime(Graphset):
+    title = "System Uptime"
+
     def poll(self, tick_time):
         raw = subprocess.check_output('uptime').decode("utf8").replace(',', '')
         days = int(raw.split()[2])
@@ -25,6 +28,7 @@ class Uptime(Graphset):
         return days + hours / 24.0 + minutes / 1440.0
 
 class SystemLoad(Graphset):
+    title = "System Load Average"
 
     def __init__(self, position=0, *args, **kwargs):
         if position > 2:
@@ -38,3 +42,14 @@ class SystemLoad(Graphset):
 
     def poll(self, tick_time):
         return os.getloadavg()[self.position]
+
+class DirectorySize(Graphset):
+    def __init__(self, directories, *args, **kwargs):
+        self.directories = directories
+        super(SystemLoad, self).__init__(*args, **kwargs)
+
+    def poll(self, tick_time):
+        for directory in self.directories:
+            raw = subprocess.check_output(['du', '-s', directory]).decode("utf8")
+
+        return results

@@ -1,6 +1,7 @@
 from django.http import JsonResponse, Http404
 from django.template.response import TemplateResponse
 from tutu.models import Tick, PollResult
+from tutu.utils import get_graphset_from_name
 
 def list_machines(request):
     machine_list = list(Tick.objects.values_list("machine", flat=True).distinct())
@@ -10,7 +11,12 @@ def show_machine_graphs(request, machine):
     ticks = Tick.objects.filter(machine=machine)
     if not ticks.exists():
         raise Http404("Machine not found")
-    graphset_list = ticks.values_list('pollresult__graphset_name', flat=True).distinct()
+    graphset_list_str = ticks.values_list('pollresult__graphset_name', flat=True).distinct()
+    graphset_list = []
+    for name in graphset_list_str:
+        returned = get_graphset_from_name(name)
+        if returned:
+            graphset_list.append(returned)
     return TemplateResponse(request, "show_graphs.html", locals())
 
 def get_graph_data(request, machine, graphset):
