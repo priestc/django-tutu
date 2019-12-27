@@ -14,7 +14,7 @@ def validate_graphset(graphset):
 def get_graphset_from_name(name):
     for item in settings.INSTALLED_GRAPHSETS:
         graphset = validate_graphset(item)
-        if name == graphset.get_name():
+        if name == graphset.get_internel_name():
             return graphset
 
 
@@ -35,7 +35,7 @@ def make_poll_results(graphsets):
             result = random.random()
             PollResult.objects.create(
                 tick=tick,
-                graphset_name=graphset.get_name(),
+                graphset_name=graphset.get_internel_name(),
                 result=result,
                 success=True,
                 seconds_to_poll=1

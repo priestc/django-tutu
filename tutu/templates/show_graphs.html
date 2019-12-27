@@ -15,11 +15,11 @@
     {% for graphset in graphset_list %}
       <h2>{{ graphset.title }}</h2>
 
-      <div id="{{ graphset.get_name }}" class="graph_container"></div>
+      <div id="{{ graphset.get_internel_name }}" class="graph_container"></div>
       <script>
-        $.ajax("{% url 'get_graph_data' machine graphset.get_name %}").done(function(data){
+        $.ajax("{% url 'get_graph_data' machine graphset.get_internel_name %}").done(function(data){
           Plotly.newPlot(
-            '{{ graphset.get_name }}',
+            '{{ graphset.get_internel_name }}',
             [{"type": "scatter", "y": data['y'], "x": data['x']}],
           );
         })
