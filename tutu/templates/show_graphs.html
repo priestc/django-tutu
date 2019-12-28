@@ -12,15 +12,18 @@
     <h1>Graphs for {{ machine }}</h1>
     <a href=".">Back to machines</a>
 
-    {% for graphset in graphset_list %}
-      <h2>{{ graphset.title }}</h2>
-
-      <div id="{{ graphset.get_internel_name }}" class="graph_container"></div>
+    {% for metric in metric_list %}
+      <hr>
+      <div id="{{ metric.get_internal_name }}" class="graph_container"></div>
       <script>
-        $.ajax("{% url 'get_graph_data' machine graphset.get_internel_name %}").done(function(data){
+        $.ajax("{% url 'get_graph_data' machine metric.get_internal_name %}").done(function(data){
           Plotly.newPlot(
-            '{{ graphset.get_internel_name }}',
+            '{{ metric.get_internal_name }}',
             [{"type": "scatter", "y": data['y'], "x": data['x']}],
+            {
+                "title": "{{ metric.title }}",
+                "yaxis": {"title": "{{ metric.yaxis_title }}"}
+            }
           );
         })
 

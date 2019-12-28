@@ -29,7 +29,7 @@ class TickAdmin(admin.ModelAdmin):
         lines = []
         for result in tick.pollresult_set.all():
             line = "<b>%s</b>: %s (took: %.2f)" % (
-                result.graphset_name, result.result, result.seconds_to_poll
+                result.metric_name, result.result, result.seconds_to_poll
             )
             if not result.success:
                 line = "<span style='color: red'>%s</span>" % line

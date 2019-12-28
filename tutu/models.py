@@ -6,7 +6,7 @@ from django.utils import timezone
 import socket
 import time
 import json
-from tutu.utils import validate_graphset
+from tutu.utils import validate_metric
 
 class Tick(models.Model):
     machine = models.TextField()
@@ -16,7 +16,7 @@ class Tick(models.Model):
         return "%s - %s" % (self.machine, self.date)
 
     @classmethod
-    def make_tick(cls, graphsets=[], test=False, verbose=False):
+    def make_tick(cls, metrics=[], test=False, verbose=False):
         machine = socket.gethostname()
 
         tick = cls.objects.create(
@@ -27,22 +27,22 @@ class Tick(models.Model):
             if verbose:
                 print("Doing tick #%s" % tick.id)
 
-        for item in graphsets:
-            graphset = validate_graphset(item)
-            graphset.tick = tick
+        for item in metrics:
+            metric = validate_metric(item)
+            metric.tick = tick
 
             if not test:
-                if tick.id % (graphset.poll_skip + 1) != 0:
+                if tick.id % (metric.poll_skip + 1) != 0:
                     if verbose:
                         print("%s: SKIPPED (took: %.2f)" % (
-                            graphset.get_internel_name(), seconds
+                            metric.get_internal_name(), seconds
                         ))
                     continue
 
             t0 = time.time()
             success = True
             try:
-                result = graphset.poll()
+                result = metric.poll()
             except Exception as exc:
                 result = "%s: %s" % (exc.__class__.__name__, str(exc))
                 success = False
@@ -55,14 +55,14 @@ class Tick(models.Model):
                 else:
                     fail = ""
                 print("%s: %s%s (took: %.2f)" % (
-                    graphset.get_internel_name(),
+                    metric.get_internal_name(),
                     fail, result, seconds
                 ))
             if test:
                 continue
 
             PollResult.objects.create(
-                graphset_name=graphset.get_internel_name(),
+                metric_name=metric.get_internal_name(),
                 tick=tick,
                 result=json.dumps(result) if success else result,
                 success=success,
@@ -72,15 +72,15 @@ class Tick(models.Model):
             tick.delete()
 
 class PollResult(models.Model):
-    graphset_name = models.TextField()
+    metric_name = models.TextField()
     tick = models.ForeignKey(Tick, on_delete=models.CASCADE)
     success = models.BooleanField()
     result = models.TextField()
     seconds_to_poll = models.FloatField()
 
     @classmethod
-    def get_graph_data(cls, machine, graphset):
-        pr = cls.objects.filter(tick__machine=machine, graphset_name=graphset)
+    def get_graph_data(cls, machine, metric):
+        pr = cls.objects.filter(tick__machine=machine, metric_name=metric)
         pr = pr.filter(success=True).values_list('tick__date', 'result')
         return {
             'x': [item[0] for item in pr],
@@ -88,4 +88,7 @@ class PollResult(models.Model):
         }
 
     def __unicode__(self):
-        return "%s (%s)" % (self.graphset_name, bool(self.success))
+        return "%s (%s)" % (self.metric_name, bool(self.success))
+
+    class Meta:
+        get_latest_by = 'tick__date'
