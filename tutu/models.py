@@ -82,8 +82,9 @@ class PollResult(models.Model):
     def get_graph_data(cls, machine, metric):
         pr = cls.objects.filter(tick__machine=machine, metric_name=metric)
         pr = pr.filter(success=True).values_list('tick__date', 'result')
+        current_tz = timezone.get_current_timezone()
         return {
-            'x': [item[0] for item in pr],
+            'x': [current_tz.normalize(item[0]) for item in pr],
             'y': [json.loads(item[1]) for item in pr]
         }
 

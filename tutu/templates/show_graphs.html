@@ -1,4 +1,4 @@
-<html>
+<html>{% load tz %}
   <head>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
@@ -12,6 +12,8 @@
     <h1>Graphs for {{ machine }}</h1>
     <a href=".">Back to machines</a>
 
+    {% get_current_timezone as TIME_ZONE %}
+
     {% for metric in metric_list %}
       <hr>
       <div id="{{ metric.get_internal_name }}" class="graph_container"></div>
@@ -22,7 +24,8 @@
             [{"type": "scatter", "y": data['y'], "x": data['x']}],
             {
                 "title": "{{ metric.title }}",
-                "yaxis": {"title": "{{ metric.yaxis_title }}"}
+                "yaxis": {"title": "{{ metric.yaxis_title }}"},
+                "xaxis": {"title": "{{ TIME_ZONE }}"}
             }
           );
         })

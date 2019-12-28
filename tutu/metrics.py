@@ -4,7 +4,9 @@ import psutil
 import datetime
 
 class Metric(object):
-    title = ""
+    @property
+    def title(self):
+        return self.get_internal_name()
 
     def __init__(self, poll_skip=0):
         self.poll_skip = poll_skip
@@ -16,12 +18,13 @@ class Metric(object):
     def internal_name_from_args(self):
         return None
 
+    @property
     def previous_tick(self):
         from tutu.models import Tick
         self.Tick = Tick
         try:
-            return Tick.objects.filter(machine=self.tick.machine).latest()
-        except Tick.DoesNotExist:
+            return Tick.objects.filter(machine=self.tick.machine).order_by("-date")[1]
+        except IndexError:
             return None
 
     @property
@@ -57,8 +60,16 @@ class OptimizedUptime(Metric):
 
 
 class SystemLoad(Metric):
-    title = "System Load Average"
     yaxis_title = "Load Average"
+
+    @property
+    def title(self):
+        minute = 1
+        if self.position == 1:
+            minute = 5
+        if self.position == 2:
+            minute = 15
+        return "System Load Average (%s minute interval)" % minute
 
     def __init__(self, position=0, *args, **kwargs):
         if position > 2:
