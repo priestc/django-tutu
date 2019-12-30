@@ -2,6 +2,9 @@ import os
 import subprocess
 import psutil
 import datetime
+import json
+
+from django.utils.functional import cached_property
 
 class Metric(object):
     @property
@@ -18,19 +21,28 @@ class Metric(object):
     def internal_name_from_args(self):
         return None
 
-    @property
+    def make_special_tick(self, at_time, value):
+        from tutu.models import Tick, PollResult
+        t = Tick.objects.create(
+            machine=self.tick.machine, date=at_time
+        )
+        PollResult.objects.create(
+            tick=t, result=json.dumps(value), metric_name=self.get_internal_name(),
+            seconds_to_poll=0, success=True
+        )
+
+    @cached_property
     def previous_tick(self):
         from tutu.models import Tick
-        self.Tick = Tick
         try:
             return Tick.objects.filter(machine=self.tick.machine).order_by("-date")[1]
         except IndexError:
             return None
 
-    @property
+    @cached_property
     def previous_poll(self):
+        print("getting previous poll")
         from tutu.models import PollResult
-        self.PollResult = PollResult
         try:
             return PollResult.objects.filter(metric_name=self.get_internal_name()).latest()
         except PollResult.DoesNotExist:
@@ -49,12 +61,27 @@ class Uptime(Metric):
 class OptimizedUptime(Metric):
     title = "Uptime (optimized)"
 
+    def make_power_on(self, this_uptime):
+        d = self.tick.date - datetime.timedelta(days=this_uptime)
+        self.make_special_tick(d, 0)
+
+    def make_power_off(self):
+        d = self.previous_poll.tick.date + datetime.timedelta(seconds=1)
+        self.make_special_tick(d, 0)
+
     def poll(self):
         this_uptime = Uptime().poll()
-        previous_uptime = self.previous_poll.result
 
-        if this_uptime > previous_uptime:
+        if not self.previous_poll:
+            print("first poll")
+            self.make_power_on(this_uptime)
+        elif this_uptime > float(self.previous_poll.result):
+            print("extending uptime")
             self.previous_poll.delete()
+        else:
+            print("reboot detected")
+            self.make_power_off()
+            self.make_power_on(this_uptime)
 
         return this_uptime
 
