@@ -7,26 +7,35 @@
         width: 600px; height: 450px;
       }
     </style>
+    {% get_current_timezone as TIME_ZONE %}
+    <script>
+      graph_data_matrix = []
+      function make_graph(div, x, y, title, ytitle){
+        traces = [{"type": "scatter", "y": y, "x": x}]
+
+        Plotly.newPlot(
+          div, traces,
+          {
+              "title": title,
+              "yaxis": {"title": ytitle},
+              "xaxis": {"title": "{{ TIME_ZONE }}"}
+          }
+        );
+      }
+    </script>
   </head>
   <body>
     <h1>Graphs for {{ machine }}</h1>
     <a href=".">Back to machines</a>
-
-    {% get_current_timezone as TIME_ZONE %}
 
     {% for metric in metric_list %}
       <hr>
       <div id="{{ metric.get_internal_name }}" class="graph_container"></div>
       <script>
         $.ajax("{% url 'get_graph_data' machine metric.get_internal_name %}").done(function(data){
-          Plotly.newPlot(
-            '{{ metric.get_internal_name }}',
-            [{"type": "scatter", "y": data['y'], "x": data['x']}],
-            {
-                "title": "{{ metric.title }}",
-                "yaxis": {"title": "{{ metric.yaxis_title }}"},
-                "xaxis": {"title": "{{ TIME_ZONE }}"}
-            }
+          make_graph(
+            '{{ metric.get_internal_name }}', data['y'], data['x'],
+            "{{ metric.title }}", "{{ metric.yaxis_title }}"
           );
         })
 

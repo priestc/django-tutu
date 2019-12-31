@@ -16,7 +16,7 @@ class Tick(models.Model):
         return "%s - %s" % (self.machine, self.date)
 
     @classmethod
-    def make_tick(cls, metrics=[], test=False, verbose=False):
+    def make_tick(cls, metrics=[], test=False, verbose=False, catch=True):
         machine = socket.gethostname()
 
         tick = cls.objects.create(
@@ -26,6 +26,11 @@ class Tick(models.Model):
         if not test:
             if verbose:
                 print("Doing tick #%s" % tick.id)
+
+        if catch:
+            to_catch = Exception
+        else:
+            to_catch = None
 
         for item in metrics:
             metric = validate_metric(item)
@@ -43,7 +48,7 @@ class Tick(models.Model):
             success = True
             try:
                 result = metric.poll()
-            except Exception as exc:
+            except to_catch as exc:
                 result = "%s: %s" % (exc.__class__.__name__, str(exc))
                 success = False
 

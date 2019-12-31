@@ -4,9 +4,12 @@ import psutil
 import datetime
 import json
 
+from django.utils import timezone
 from django.utils.functional import cached_property
 
 class Metric(object):
+    tick = None
+
     @property
     def title(self):
         return self.get_internal_name()
@@ -53,13 +56,13 @@ class Uptime(Metric):
     yaxis_title = "Days"
 
     def poll(self):
+        now = timezone.make_naive(self.tick.date) if self.tick else datetime.datetime.now()
         boot_date = datetime.datetime.fromtimestamp(psutil.boot_time())
-        return (
-            datetime.datetime.now() - boot_date
-        ).total_seconds() / 86400.0
+        return (now - boot_date).total_seconds() / 86400.0
 
 class OptimizedUptime(Metric):
-    title = "Uptime (optimized)"
+    title = "System Uptime"
+    yaxis_title = "Days"
 
     def make_power_on(self, this_uptime):
         d = self.tick.date - datetime.timedelta(days=this_uptime)
@@ -70,16 +73,18 @@ class OptimizedUptime(Metric):
         self.make_special_tick(d, 0)
 
     def poll(self):
-        this_uptime = Uptime().poll()
+        uptime = Uptime()
+        uptime.tick = self.tick
+        this_uptime = uptime.poll()
 
         if not self.previous_poll:
-            print("first poll")
+            # first poll
             self.make_power_on(this_uptime)
         elif this_uptime > float(self.previous_poll.result):
-            print("extending uptime")
+            # extending uptime
             self.previous_poll.delete()
         else:
-            print("reboot detected")
+            # reboot detected
             self.make_power_off()
             self.make_power_on(this_uptime)
 

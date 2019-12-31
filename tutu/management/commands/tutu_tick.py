@@ -17,10 +17,16 @@ class Command(BaseCommand):
             action='store_true',
             help="Show output",
         )
+        parser.add_argument(
+            '--no-catch',
+            action='store_true',
+            help="Show output",
+        )
 
     def handle(self, *args, **options):
         Tick.make_tick(
             settings.INSTALLED_GRAPHSETS,
             verbose=options['verbose'],
-            test=options['test']
+            test=options['test'],
+            catch=not options['no_catch']
         )
