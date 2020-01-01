@@ -9,9 +9,10 @@
     </style>
     {% get_current_timezone as TIME_ZONE %}
     <script>
-      graph_data_matrix = []
-      function make_graph(div, x, y, title, ytitle){
-        traces = [{"type": "scatter", "y": y, "x": x}]
+      var graph_data_matrix = [];
+      function make_graph(div, traces, x, y, title, ytitle){
+        traces[0]['x'] = x;
+        traces[0]['y'] = y;
 
         Plotly.newPlot(
           div, traces,
@@ -34,7 +35,8 @@
       <script>
         $.ajax("{% url 'get_graph_data' machine metric.get_internal_name %}").done(function(data){
           make_graph(
-            '{{ metric.get_internal_name }}', data['y'], data['x'],
+            '{{ metric.get_internal_name }}', {{ metric.traces|safe }},
+            data['x'], data['y'],
             "{{ metric.title }}", "{{ metric.yaxis_title }}"
           );
         })

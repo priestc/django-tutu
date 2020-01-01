@@ -3,12 +3,14 @@ import subprocess
 import psutil
 import datetime
 import json
+import hashlib
 
 from django.utils import timezone
 from django.utils.functional import cached_property
 
 class Metric(object):
     tick = None
+    traces = [{"type": "scatter"}]
 
     @property
     def title(self):
@@ -54,6 +56,7 @@ class Metric(object):
 class Uptime(Metric):
     title = "System Uptime"
     yaxis_title = "Days"
+    traces = [{"type": "scatter"}]
 
     def poll(self):
         now = timezone.make_naive(self.tick.date) if self.tick else datetime.datetime.now()
@@ -63,6 +66,7 @@ class Uptime(Metric):
 class OptimizedUptime(Metric):
     title = "System Uptime"
     yaxis_title = "Days"
+    traces = [{"type": "scatter", "fill": 'tozeroy'}]
 
     def make_power_on(self, this_uptime):
         d = self.tick.date - datetime.timedelta(days=this_uptime)
@@ -93,6 +97,7 @@ class OptimizedUptime(Metric):
 
 class SystemLoad(Metric):
     yaxis_title = "Load Average"
+    traces = [{"type": "scatter"}]
 
     @property
     def title(self):
@@ -121,10 +126,22 @@ class DirectorySize(Metric):
 
     def __init__(self, directories, *args, **kwargs):
         self.directories = directories
-        super(SystemLoad, self).__init__(*args, **kwargs)
+        super(DirectorySize, self).__init__(*args, **kwargs)
+
+    def mini_hash(self, directory):
+        return hashlib.sha256(directory).hexdigest()[:6]
 
     def poll(self):
+        results = {}
         for directory in self.directories:
-            raw = subprocess.check_output(['du', '-s', directory]).decode("utf8")
+            total_size = 0
+            for dirpath, dirnames, filenames in os.walk(directory):
+                for f in filenames:
+                    fp = os.path.join(dirpath, f)
+                    # skip if it is symbolic link
+                    if not os.path.islink(fp):
+                        total_size += os.path.getsize(fp)
+
+            results[self.mini_hash(directory)] = total_size
 
         return results

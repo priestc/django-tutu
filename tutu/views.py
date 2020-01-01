@@ -1,7 +1,7 @@
 from django.http import JsonResponse, Http404
 from django.template.response import TemplateResponse
 from tutu.models import Tick, PollResult
-from tutu.utils import get_metric_from_name
+from tutu.utils import get_metrics_from_names
 
 def list_machines(request):
     machine_list = list(Tick.objects.values_list("machine", flat=True).distinct())
@@ -11,12 +11,10 @@ def show_machine_graphs(request, machine):
     ticks = Tick.objects.filter(machine=machine)
     if not ticks.exists():
         raise Http404("Machine not found")
-    metric_list_str = ticks.values_list('pollresult__metric_name', flat=True).distinct()
-    metric_list = []
-    for name in metric_list_str:
-        returned = get_metric_from_name(name)
-        if returned:
-            metric_list.append(returned)
+    metric_list = get_metrics_from_names(
+        ticks.values_list('pollresult__metric_name', flat=True).distinct()
+    )
+    
     return TemplateResponse(request, "show_graphs.html", locals())
 
 def get_graph_data(request, machine, metric):

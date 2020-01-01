@@ -12,11 +12,21 @@ def validate_metric(metric):
 
 
 def get_metric_from_name(name):
-    for item in settings.INSTALLED_GRAPHSETS:
+    for item in settings.INSTALLED_TUTU_METRICS:
         metric = validate_metric(item)
         if name == metric.get_internal_name():
             return metric
 
+def get_metrics_from_names(metric_names):
+    metric_list = []
+    for name in metric_names:
+        returned = get_metric_from_name(name)
+        if returned:
+            metric_list.append(returned)
+    return metric_list
+
+######################################################
+######################################################
 
 def make_test_ticks(start_ago=datetime.timedelta(days=30)):
     from tutu.models import Tick
