@@ -129,7 +129,7 @@ class DirectorySize(Metric):
         super(DirectorySize, self).__init__(*args, **kwargs)
 
     def mini_hash(self, directory):
-        return hashlib.sha256(directory).hexdigest()[:6]
+        return hashlib.sha256(directory.encode()).hexdigest()[:6]
 
     def poll(self):
         results = {}

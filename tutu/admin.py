@@ -27,11 +27,13 @@ class TickAdmin(admin.ModelAdmin):
 
     def poll_result(self, tick):
         lines = []
-        for result in tick.pollresult_set.all():
+        #import ipdb; ipdb.set_trace()
+        for pr in tick.pollresult_set.all():
             line = "<b>%s</b>: %s (took: %.2f)" % (
-                result.metric_name, result.result, result.seconds_to_poll
+                pr.metric_name, pr.result.replace("}", "&lbrace;").replace("}", "&rbrace;"),
+                pr.seconds_to_poll
             )
-            if not result.success:
+            if not pr.success:
                 line = "<span style='color: red'>%s</span>" % line
             lines.append(line)
 

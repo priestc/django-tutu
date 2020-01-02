@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 from tutu.models import Tick
-from django.conf import settings
+from tutu.utils import get_installed_metrics
 
 class Command(BaseCommand):
     args = '<poll_id poll_id ...>'
@@ -25,7 +25,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         Tick.make_tick(
-            settings.INSTALLED_GRAPHSETS,
+            get_installed_metrics(),
             verbose=options['verbose'],
             test=options['test'],
             catch=not options['no_catch']

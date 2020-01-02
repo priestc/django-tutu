@@ -10,10 +10,14 @@ def validate_metric(metric):
     else:
         raise ValueError("Must be a Metric class or instance")
 
+def get_installed_metrics():
+    metrics = []
+    for item in settings.INSTALLED_TUTU_METRICS:
+        metrics.append(validate_metric(item))
+    return metrics
 
 def get_metric_from_name(name):
-    for item in settings.INSTALLED_TUTU_METRICS:
-        metric = validate_metric(item)
+    for item in get_installed_metrics():
         if name == metric.get_internal_name():
             return metric
 

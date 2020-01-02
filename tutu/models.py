@@ -6,7 +6,10 @@ from django.utils import timezone
 import socket
 import time
 import json
-from tutu.utils import validate_metric
+from tutu.utils import get_installed_metrics
+
+class FakeException(BaseException):
+    pass
 
 class Tick(models.Model):
     machine = models.TextField()
@@ -30,10 +33,9 @@ class Tick(models.Model):
         if catch:
             to_catch = Exception
         else:
-            to_catch = None
+            to_catch = FakeException
 
-        for item in metrics:
-            metric = validate_metric(item)
+        for metric in metrics:
             metric.tick = tick
 
             if not test:
@@ -75,6 +77,21 @@ class Tick(models.Model):
             )
         if test:
             tick.delete()
+
+    @classmethod
+    def make_matrix(cls, machine):
+        ticks = cls.objects.filter(machine=machine)
+        rows = []
+        for tick in ticks:
+            row = [rick.date]
+            for metric in get_installed_metrics():
+                pr = tick.pollresult_set.filter(metric_name=metric.get_internal_name())
+                if pr.exists():
+                    row.append(pr.get().result)
+                else:
+                    row.append(None)
+
+        return rows
 
 class PollResult(models.Model):
     metric_name = models.TextField()
