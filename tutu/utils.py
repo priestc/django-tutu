@@ -17,7 +17,7 @@ def get_installed_metrics():
     return metrics
 
 def get_metric_from_name(name):
-    for item in get_installed_metrics():
+    for metric in get_installed_metrics():
         if name == metric.get_internal_name():
             return metric
 

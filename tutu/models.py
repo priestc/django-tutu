@@ -80,16 +80,19 @@ class Tick(models.Model):
 
     @classmethod
     def make_matrix(cls, machine):
-        ticks = cls.objects.filter(machine=machine)
+        ticks = cls.objects.filter(machine=machine).exclude(pollresult__isnull=True)
         rows = []
         for tick in ticks:
-            row = [rick.date]
+            row = [tick.date]
             for metric in get_installed_metrics():
-                pr = tick.pollresult_set.filter(metric_name=metric.get_internal_name())
+                pr = tick.pollresult_set.filter(metric_name=metric.get_internal_name(), success=True)
                 if pr.exists():
-                    row.append(pr.get().result)
+                    row.append(
+                        metric.result_to_matrix(json.loads(pr.get().result))
+                    )
                 else:
                     row.append(None)
+            rows.append(row)
 
         return rows
 

@@ -27,10 +27,9 @@ class TickAdmin(admin.ModelAdmin):
 
     def poll_result(self, tick):
         lines = []
-        #import ipdb; ipdb.set_trace()
         for pr in tick.pollresult_set.all():
             line = "<b>%s</b>: %s (took: %.2f)" % (
-                pr.metric_name, pr.result.replace("}", "&lbrace;").replace("}", "&rbrace;"),
+                pr.metric_name, pr.result.replace("{", "&lbrace;").replace("}", "&rbrace;"),
                 pr.seconds_to_poll
             )
             if not pr.success:

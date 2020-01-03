@@ -53,6 +53,9 @@ class Metric(object):
         except PollResult.DoesNotExist:
             return None
 
+    def result_to_matrix(self, result):
+        return result
+
 class Uptime(Metric):
     title = "System Uptime"
     yaxis_title = "Days"
@@ -126,14 +129,16 @@ class DirectorySize(Metric):
 
     def __init__(self, directories, *args, **kwargs):
         self.directories = directories
+        self.mini_hashes = [self.make_mini_hash(d) for d in directories]
+
         super(DirectorySize, self).__init__(*args, **kwargs)
 
-    def mini_hash(self, directory):
+    def make_mini_hash(self, directory):
         return hashlib.sha256(directory.encode()).hexdigest()[:6]
 
     def poll(self):
         results = {}
-        for directory in self.directories:
+        for i, directory in enumerate(self.directories):
             total_size = 0
             for dirpath, dirnames, filenames in os.walk(directory):
                 for f in filenames:
@@ -142,6 +147,13 @@ class DirectorySize(Metric):
                     if not os.path.islink(fp):
                         total_size += os.path.getsize(fp)
 
-            results[self.mini_hash(directory)] = total_size
+            results[self.mini_hashes[i]] = total_size
 
         return results
+
+    def result_to_matrix(self, result):
+        column = []
+        for minihash in self.mini_hashes:
+            column.append(result.get(minihash, None))
+
+        return column

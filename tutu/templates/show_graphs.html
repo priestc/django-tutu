@@ -9,7 +9,7 @@
     </style>
     {% get_current_timezone as TIME_ZONE %}
     <script>
-      var graph_data_matrix = [];
+      var graph_data_matrix = {{ matrix }};
       function make_graph(div, traces, x, y, title, ytitle){
         traces[0]['x'] = x;
         traces[0]['y'] = y;
