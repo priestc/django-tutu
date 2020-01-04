@@ -127,6 +127,14 @@ class SystemLoad(Metric):
 class DirectorySize(Metric):
     yaxis_title = "Kilobytes"
 
+    @property
+    def traces(self):
+        returned = []
+        for directory in self.directories:
+            last_dir = directory.split("/")[-1]
+            returned.append({"type": "scatter", "name": last_dir})
+        return returned
+
     def __init__(self, directories, *args, **kwargs):
         self.directories = directories
         self.mini_hashes = [self.make_mini_hash(d) for d in directories]

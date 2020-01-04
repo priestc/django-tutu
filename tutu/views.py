@@ -14,6 +14,7 @@ def show_machine_graphs(request, machine):
     metric_list = get_metrics_from_names(
         ticks.values_list('pollresult__metric_name', flat=True).distinct()
     )
+    matrix = Tick.make_matrix(machine, to_json=True)
     return TemplateResponse(request, "show_graphs.html", locals())
 
 def get_graph_data(request, machine, metric):

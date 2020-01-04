@@ -79,11 +79,11 @@ class Tick(models.Model):
             tick.delete()
 
     @classmethod
-    def make_matrix(cls, machine):
+    def make_matrix(cls, machine, to_json=False):
         ticks = cls.objects.filter(machine=machine).exclude(pollresult__isnull=True)
         rows = []
         for tick in ticks:
-            row = [tick.date]
+            row = [tick.date.isoformat()]
             for metric in get_installed_metrics():
                 pr = tick.pollresult_set.filter(metric_name=metric.get_internal_name(), success=True)
                 if pr.exists():
@@ -93,6 +93,9 @@ class Tick(models.Model):
                 else:
                     row.append(None)
             rows.append(row)
+
+        if to_json:
+            return json.dumps(rows, indent=4)
 
         return rows
 

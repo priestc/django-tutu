@@ -9,10 +9,22 @@
     </style>
     {% get_current_timezone as TIME_ZONE %}
     <script>
-      var graph_data_matrix = {{ matrix }};
-      function make_graph(div, traces, x, y, title, ytitle){
-        traces[0]['x'] = x;
-        traces[0]['y'] = y;
+      var graph_data_matrix = {{ matrix|safe }};
+
+      function fill_in_traces(traces, column) {
+        filled_traces = []
+        graph_data_matrix.forEach(function(row){
+          traces.forEach(function(cell){
+            filled_trace = trace;
+            filled_trace['x'] = cell[0];
+            filled_trace['y'] = cell[column];
+            filled_traces.push(filled_trace)
+          });
+        });
+      }
+
+      function make_graph(div, traces, column, title, ytitle){
+        traces = fill_in_traces(traces, column)
 
         Plotly.newPlot(
           div, traces,
@@ -36,7 +48,7 @@
         $.ajax("{% url 'get_graph_data' machine metric.get_internal_name %}").done(function(data){
           make_graph(
             '{{ metric.get_internal_name }}', {{ metric.traces|safe }},
-            data['x'], data['y'],
+            {{ forloop.counter }},
             "{{ metric.title }}", "{{ metric.yaxis_title }}"
           );
         })
