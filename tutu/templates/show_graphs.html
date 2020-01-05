@@ -12,15 +12,30 @@
       var graph_data_matrix = {{ matrix|safe }};
 
       function fill_in_traces(traces, column) {
-        filled_traces = []
+        traces.forEach(function(trace){
+          trace['x'] = []; trace['y'] = [];
+        });
+
         graph_data_matrix.forEach(function(row){
-          traces.forEach(function(cell){
-            filled_trace = trace;
-            filled_trace['x'] = cell[0];
-            filled_trace['y'] = cell[column];
-            filled_traces.push(filled_trace)
+          var cell = row[column];
+
+          if(cell == null) {
+            return;
+          }
+
+          if(!Array.isArray(cell)) {
+            cell = [cell];
+          }
+
+          traces.forEach(function(trace, i){
+            if(cell[i] == null) {
+              return;
+            }
+            trace['x'].push(row[0]);
+            trace['y'].push(cell[i]);
           });
         });
+        return traces
       }
 
       function make_graph(div, traces, column, title, ytitle){
@@ -45,16 +60,20 @@
       <hr>
       <div id="{{ metric.get_internal_name }}" class="graph_container"></div>
       <script>
-        $.ajax("{% url 'get_graph_data' machine metric.get_internal_name %}").done(function(data){
-          make_graph(
+          graph_args += [
             '{{ metric.get_internal_name }}', {{ metric.traces|safe }},
-            {{ forloop.counter }},
-            "{{ metric.title }}", "{{ metric.yaxis_title }}"
-          );
-        })
-
+            {{ forloop.counter }}, "{{ metric.title }}", "{{ metric.yaxis_title }}"
+          ] ;
       </script>
     {% endfor %}
+
+    <script>
+      $.ajax("{% url %}").done(function(){
+        graph_args.forEach(function(args){
+          make_graph.apply(args);
+        })
+      });
+    </script>
 
   </body>
 </html>

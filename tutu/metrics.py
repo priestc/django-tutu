@@ -131,9 +131,14 @@ class DirectorySize(Metric):
     def traces(self):
         returned = []
         for directory in self.directories:
-            last_dir = directory.split("/")[-1]
+            last_dir = self.get_title(directory)
             returned.append({"type": "scatter", "name": last_dir})
         return returned
+
+    def get_title(self, directory):
+        if directory.endswith("/"):
+            directory = directory[:-1]
+        return directory.split("/")[-1]
 
     def __init__(self, directories, *args, **kwargs):
         self.directories = directories

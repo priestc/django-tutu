@@ -82,8 +82,9 @@ class Tick(models.Model):
     def make_matrix(cls, machine, to_json=False):
         ticks = cls.objects.filter(machine=machine).exclude(pollresult__isnull=True)
         rows = []
+        current_tz = timezone.get_current_timezone()
         for tick in ticks:
-            row = [tick.date.isoformat()]
+            row = [current_tz.normalize(tick.date).isoformat()]
             for metric in get_installed_metrics():
                 pr = tick.pollresult_set.filter(metric_name=metric.get_internal_name(), success=True)
                 if pr.exists():
