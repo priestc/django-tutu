@@ -9,7 +9,8 @@
     </style>
     {% get_current_timezone as TIME_ZONE %}
     <script>
-      var graph_data_matrix = {{ matrix|safe }};
+      var graph_args = [];
+      var graph_data_matrix = null;
 
       function fill_in_traces(traces, column) {
         traces.forEach(function(trace){
@@ -60,18 +61,20 @@
       <hr>
       <div id="{{ metric.get_internal_name }}" class="graph_container"></div>
       <script>
-          graph_args += [
+          graph_args.push([
             '{{ metric.get_internal_name }}', {{ metric.traces|safe }},
             {{ forloop.counter }}, "{{ metric.title }}", "{{ metric.yaxis_title }}"
-          ] ;
+          ]);
       </script>
     {% endfor %}
 
     <script>
-      $.ajax("{% url %}").done(function(){
+      $.ajax("{% url 'get_matrix' machine %}").done(function(response){
+        graph_data_matrix = response['matrix'];
+        
         graph_args.forEach(function(args){
-          make_graph.apply(args);
-        })
+          make_graph.apply(null, args);
+        });
       });
     </script>
 

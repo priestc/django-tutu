@@ -11,15 +11,20 @@ from django.utils.functional import cached_property
 class Metric(object):
     tick = None
     traces = [{"type": "scatter"}]
+    manual_internal_name = None
 
     @property
     def title(self):
         return self.get_internal_name()
 
-    def __init__(self, poll_skip=0):
+    def __init__(self, poll_skip=0, internal_name=None):
         self.poll_skip = poll_skip
+        self.manual_internal_name
 
     def get_internal_name(self):
+        if self.manual_internal_name:
+            return manual_internal_name
+
         name = self.internal_name_from_args()
         return self.__class__.__name__ + (name or "")
 
@@ -134,6 +139,9 @@ class DirectorySize(Metric):
             last_dir = self.get_title(directory)
             returned.append({"type": "scatter", "name": last_dir})
         return returned
+
+    def internal_name_from_args(self):
+        return "_" + self.make_mini_hash(''.join(self.directories))
 
     def get_title(self, directory):
         if directory.endswith("/"):

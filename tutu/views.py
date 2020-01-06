@@ -14,7 +14,6 @@ def show_machine_graphs(request, machine):
     metric_list = get_metrics_from_names(
         ticks.values_list('pollresult__metric_name', flat=True).distinct()
     )
-    matrix = Tick.make_matrix(machine, to_json=True)
     return TemplateResponse(request, "show_graphs.html", locals())
 
 def get_graph_data(request, machine, metric):
@@ -26,3 +25,9 @@ def get_graph_data(request, machine, metric):
         raise Http404("Metric not found")
 
     return JsonResponse(PollResult.get_graph_data(machine, metric))
+
+def get_matrix(request, machine):
+    ticks = Tick.objects.filter(machine=machine)
+    if not ticks.exists():
+        raise Http404("Machine not found")
+    return JsonResponse({'matrix': Tick.make_matrix(machine)})
