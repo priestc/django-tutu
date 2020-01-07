@@ -19,11 +19,11 @@ class Metric(object):
 
     def __init__(self, poll_skip=0, internal_name=None):
         self.poll_skip = poll_skip
-        self.manual_internal_name
+        self.manual_internal_name = internal_name
 
     def get_internal_name(self):
         if self.manual_internal_name:
-            return manual_internal_name
+            return self.manual_internal_name
 
         name = self.internal_name_from_args()
         return self.__class__.__name__ + (name or "")
@@ -130,7 +130,7 @@ class SystemLoad(Metric):
         return os.getloadavg()[self.position]
 
 class DirectorySize(Metric):
-    yaxis_title = "Kilobytes"
+    yaxis_title = "_bytes"
 
     @property
     def traces(self):

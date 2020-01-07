@@ -39,8 +39,35 @@
         return traces
       }
 
+      function translate_traces_for_bytes(traces) {
+        var total_max =  Math.max(
+          ...traces.map(trace => Math.max(...trace['y']))
+        );
+        if(total_max < 1024) {
+          return [traces, "Bytes"]
+        }
+
+        var ret = null;
+        ['Kilo', 'Mega', 'Giga', 'Tera'].some(function(unit, i){
+
+          if(total_max < 1024 ** (i+2)) {
+            traces.forEach(function(trace){
+              trace['y'] = trace['y'].map(x => x / 1024 ** (i+1));
+            });
+            ret =[traces, unit + "byte"];
+            return true;
+          }
+
+        });
+        return ret
+      }
+
       function make_graph(div, traces, column, title, ytitle){
-        traces = fill_in_traces(traces, column)
+        traces = fill_in_traces(traces, column);
+
+        if(ytitle == '_bytes') {
+          [traces, ytitle] = translate_traces_for_bytes(traces);
+        }
 
         Plotly.newPlot(
           div, traces,
@@ -71,9 +98,9 @@
     <script>
       $.ajax("{% url 'get_matrix' machine %}").done(function(response){
         graph_data_matrix = response['matrix'];
-        
+
         graph_args.forEach(function(args){
-          make_graph.apply(null, args);
+          make_graph(...args);
         });
       });
     </script>
