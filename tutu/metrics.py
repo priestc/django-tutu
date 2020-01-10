@@ -11,20 +11,18 @@ from django.utils.functional import cached_property
 class Metric(object):
     tick = None
     traces = [{"type": "scatter"}]
-    manual_internal_name = None
+    internal_name = None
+    title = None
 
-    @property
-    def title(self):
-        return self.get_internal_name()
+    def make_title(self):
+        return self.title or self.internal_name
 
-    def __init__(self, poll_skip=0, internal_name=None):
+    def __init__(self, poll_skip=0, internal_name=None, title=None):
         self.poll_skip = poll_skip
-        self.manual_internal_name = internal_name
+        self.internal_name = internal_name or self.make_default_internal_name()
+        self.title = title or self.make_title()
 
-    def get_internal_name(self):
-        if self.manual_internal_name:
-            return self.manual_internal_name
-
+    def make_default_internal_name(self):
         name = self.internal_name_from_args()
         return self.__class__.__name__ + (name or "")
 
@@ -37,7 +35,7 @@ class Metric(object):
             machine=self.tick.machine, date=at_time
         )
         PollResult.objects.create(
-            tick=t, result=json.dumps(value), metric_name=self.get_internal_name(),
+            tick=t, result=json.dumps(value), metric_name=self.internal_name,
             seconds_to_poll=0, success=True
         )
 
@@ -51,10 +49,9 @@ class Metric(object):
 
     @cached_property
     def previous_poll(self):
-        print("getting previous poll")
         from tutu.models import PollResult
         try:
-            return PollResult.objects.filter(metric_name=self.get_internal_name()).latest()
+            return PollResult.objects.filter(metric_name=self.internal_name).latest()
         except PollResult.DoesNotExist:
             return None
 
@@ -94,7 +91,8 @@ class OptimizedUptime(Metric):
             self.make_power_on(this_uptime)
         elif this_uptime > float(self.previous_poll.result):
             # extending uptime
-            self.previous_poll.delete()
+            if self.previous_poll.result != "0":
+                self.previous_poll.delete()
         else:
             # reboot detected
             self.make_power_off()
@@ -107,8 +105,7 @@ class SystemLoad(Metric):
     yaxis_title = "Load Average"
     traces = [{"type": "scatter"}]
 
-    @property
-    def title(self):
+    def make_title(self):
         minute = 1
         if self.position == 1:
             minute = 5
@@ -136,14 +133,14 @@ class DirectorySize(Metric):
     def traces(self):
         returned = []
         for directory in self.directories:
-            last_dir = self.get_title(directory)
+            last_dir = self.get_path_title(directory)
             returned.append({"type": "scatter", "name": last_dir})
         return returned
 
     def internal_name_from_args(self):
         return "_" + self.make_mini_hash(''.join(self.directories))
 
-    def get_title(self, directory):
+    def get_path_title(self, directory):
         if directory.endswith("/"):
             directory = directory[:-1]
         return directory.split("/")[-1]

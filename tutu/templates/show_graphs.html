@@ -86,10 +86,10 @@
 
     {% for metric in metric_list %}
       <hr>
-      <div id="{{ metric.get_internal_name }}" class="graph_container"></div>
+      <div id="{{ metric.internal_name }}" class="graph_container"></div>
       <script>
           graph_args.push([
-            '{{ metric.get_internal_name }}', {{ metric.traces|safe }},
+            '{{ metric.internal_name }}', {{ metric.traces|safe }},
             {{ forloop.counter }}, "{{ metric.title }}", "{{ metric.yaxis_title }}"
           ]);
       </script>

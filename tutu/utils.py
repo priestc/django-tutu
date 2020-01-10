@@ -18,15 +18,14 @@ def get_installed_metrics():
 
 def get_metric_from_name(name):
     for metric in get_installed_metrics():
-        if name == metric.get_internal_name():
+        if name == metric.internal_name:
             return metric
 
 def get_metrics_from_names(metric_names):
     metric_list = []
-    for name in metric_names:
-        returned = get_metric_from_name(name)
-        if returned:
-            metric_list.append(returned)
+    for metric in get_installed_metrics():
+        if metric.internal_name in metric_names:
+            metric_list.append(metric)
     return metric_list
 
 ######################################################
@@ -49,7 +48,7 @@ def make_poll_results(metrics):
             result = random.random()
             PollResult.objects.create(
                 tick=tick,
-                metric_name=metric.get_internal_name(),
+                metric_name=metric.internal_name,
                 result=result,
                 success=True,
                 seconds_to_poll=1

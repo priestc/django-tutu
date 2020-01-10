@@ -42,7 +42,7 @@ class Tick(models.Model):
                 if tick.id % (metric.poll_skip + 1) != 0:
                     if verbose:
                         print("%s: SKIPPED (took: %.2f)" % (
-                            metric.get_internal_name(), seconds
+                            metric.internal_name, seconds
                         ))
                     continue
 
@@ -62,14 +62,14 @@ class Tick(models.Model):
                 else:
                     fail = ""
                 print("%s: %s%s (took: %.2f)" % (
-                    metric.get_internal_name(),
+                    metric.internal_name,
                     fail, result, seconds
                 ))
             if test:
                 continue
 
             PollResult.objects.create(
-                metric_name=metric.get_internal_name(),
+                metric_name=metric.internal_name,
                 tick=tick,
                 result=json.dumps(result) if success else result,
                 success=success,
@@ -86,7 +86,7 @@ class Tick(models.Model):
         for tick in ticks:
             row = [current_tz.normalize(tick.date).isoformat()]
             for metric in get_installed_metrics():
-                pr = tick.pollresult_set.filter(metric_name=metric.get_internal_name(), success=True)
+                pr = tick.pollresult_set.filter(metric_name=metric.internal_name, success=True)
                 if pr.exists():
                     row.append(
                         metric.result_to_matrix(json.loads(pr.get().result))
