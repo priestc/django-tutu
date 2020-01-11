@@ -18,16 +18,24 @@ class Metric(object):
         return self.title or self.internal_name
 
     def __init__(self, poll_skip=0, internal_name=None, title=None):
-        self.poll_skip = poll_skip
         self.internal_name = internal_name or self.make_default_internal_name()
         self.title = title or self.make_title()
+        self.poll_skip = poll_skip
 
     def make_default_internal_name(self):
         name = self.internal_name_from_args()
         return self.__class__.__name__ + (name or "")
 
     def internal_name_from_args(self):
-        return None
+        if not self.__dict__:
+            return ""
+        sorted_d = sorted(self.__dict__.items(), key=lambda x: x[0])
+        return "_" + self.make_mini_hash(
+            ''.join("%s%s" % (k,v) for k,v in sorted_d)
+        )
+
+    def make_mini_hash(self, directory):
+        return hashlib.sha256(directory.encode()).hexdigest()[:6]
 
     def make_special_tick(self, at_time, value):
         from tutu.models import Tick, PollResult
@@ -151,9 +159,6 @@ class DirectorySize(Metric):
 
         super(DirectorySize, self).__init__(*args, **kwargs)
 
-    def make_mini_hash(self, directory):
-        return hashlib.sha256(directory.encode()).hexdigest()[:6]
-
     def poll(self):
         results = {}
         for i, directory in enumerate(self.directories):
@@ -175,3 +180,13 @@ class DirectorySize(Metric):
             column.append(result.get(minihash, None))
 
         return column
+
+
+class DiskSpaceFree(Metric):
+    pass
+
+class DiskSpacePecentageFree(Metric):
+    pass
+
+class DiskSpaceUsed(Metric):
+    pass
