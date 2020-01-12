@@ -1,3 +1,5 @@
+from __future__ import division
+
 import os
 import subprocess
 import psutil
@@ -145,9 +147,6 @@ class DirectorySize(Metric):
             returned.append({"type": "scatter", "name": last_dir})
         return returned
 
-    def internal_name_from_args(self):
-        return "_" + self.make_mini_hash(''.join(self.directories))
-
     def get_path_title(self, directory):
         if directory.endswith("/"):
             directory = directory[:-1]
@@ -156,7 +155,6 @@ class DirectorySize(Metric):
     def __init__(self, directories, *args, **kwargs):
         self.directories = directories
         self.mini_hashes = [self.make_mini_hash(d) for d in directories]
-
         super(DirectorySize, self).__init__(*args, **kwargs)
 
     def poll(self):
@@ -178,17 +176,36 @@ class DirectorySize(Metric):
         column = []
         for minihash in self.mini_hashes:
             column.append(result.get(minihash, None))
-
         return column
 
 
-class DiskSpaceFree(Metric):
+class DiskSpace(Metric):
+    yaxis_title = "_bytes"
+
+    def make_title(self):
+        if self.dimension.endswith("used"):
+            return "Disk Space Used"
+        return "Disk Space Free"
+
+    @property
+    def traces(self):
+        returned = []
+        for device in self.devices:
+            returned.append({"type": "scatter", "name": device})
+        return returned
+
+    def __init__(self, devices, dimension='free', *args, **kwargs):
+        self.devices = devices
+        self.dimension = dimension
+        if dimension.startswith("percentage"):
+            self.yaxis_title = "Percent"
+        super(DiskSpace, self).__init__(*args, **kwargs)
 
     def parse_df(self):
         raw = subprocess.check_output(['df', '-k']).decode("utf8").split("\n")
         result = {}
         for line in raw[1:-1]:
-            splitted = filter(lambda x: x != '', line.split(" "))
+            splitted = list(filter(lambda x: x != '', line.split(" ")))
             if len(splitted) > 9:
                 continue
             result[splitted[0]] = {
@@ -201,12 +218,21 @@ class DiskSpaceFree(Metric):
         df = self.parse_df()
         results = {}
         for device in self.devices:
-            df[device]['free']
+            if self.dimension in ['free', 'used']:
+                results[device] = df[device][self.dimension]
+                continue
+
+            all = (df[device]['used'] + df[device]['free'])
+
+            if self.dimension == 'percentage_free':
+                results[device] = 100 * df[device]['free'] / all
+            elif self.dimension == 'percentage_used':
+                results[device] = 100 * df[device]['used'] / all
 
         return results
 
-class DiskSpacePecentageFree(Metric):
-    pass
-
-class DiskSpaceUsed(Metric):
-    pass
+    def result_to_matrix(self, result):
+        column = []
+        for device in self.devices:
+            column.append(result.get(device, None))
+        return column
