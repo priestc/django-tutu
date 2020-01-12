@@ -183,7 +183,27 @@ class DirectorySize(Metric):
 
 
 class DiskSpaceFree(Metric):
-    pass
+
+    def parse_df(self):
+        raw = subprocess.check_output(['df', '-k']).decode("utf8").split("\n")
+        result = {}
+        for line in raw[1:-1]:
+            splitted = filter(lambda x: x != '', line.split(" "))
+            if len(splitted) > 9:
+                continue
+            result[splitted[0]] = {
+                'free': int(splitted[3]) * 1024,
+                'used': int(splitted[2]) * 1024
+            }
+        return result
+
+    def poll(self):
+        df = self.parse_df()
+        results = {}
+        for device in self.devices:
+            df[device]['free']
+
+        return results
 
 class DiskSpacePecentageFree(Metric):
     pass
