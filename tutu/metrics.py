@@ -236,3 +236,27 @@ class DiskSpace(Metric):
         for device in self.devices:
             column.append(result.get(device, None))
         return column
+
+class Memory(Metric):
+    def make_title(self):
+        if self.dimension.endswith("used"):
+            return "Memory Used"
+        return "Memory Free"
+
+    def __init__(self, dimension='free', *args, **kwargs):
+        self.dimension = dimension
+        if dimension.startswith("percentage"):
+            self.yaxis_title = "Percent"
+        super(Memory, self).__init__(*args, **kwargs)
+
+    def poll(self):
+        mem = psutil.virtual_memory()
+        if self.dimension == 'percentage_used':
+            return mem.percent
+        if self.dimension == 'percentage_free':
+            return 100 - mem.percent
+
+        return getattr(mem, self.dimension)
+
+class CPU(Metric):
+    pass

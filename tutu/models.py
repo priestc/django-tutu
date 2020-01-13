@@ -80,6 +80,7 @@ class Tick(models.Model):
 
     @classmethod
     def make_matrix(cls, machine, to_json=False):
+        t0 = timezone.now()
         ticks = cls.objects.filter(machine=machine).exclude(pollresult__isnull=True)
         rows = []
         current_tz = timezone.get_current_timezone()
@@ -98,6 +99,7 @@ class Tick(models.Model):
         if to_json:
             return json.dumps(rows, indent=4)
 
+        print("matrix took: %s" % (timezone.now() - t0))
         return rows
 
 class PollResult(models.Model):
