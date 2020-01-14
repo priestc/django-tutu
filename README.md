@@ -10,29 +10,35 @@ This project works in both Python 2.7 and Python 3.0+. It works with Django 1.11
 
 1. Install module:
     
-    $ pip install django-tutu
+```console
+pip install django-tutu
+```
 
 2. Add settings:
 
-    from tutu.metrics import *
-    INSTALLED_TUTU_METRICS = [Uptime, SystemLoad, Memory]
-    
+```python
+from tutu.metrics import *
+INSTALLED_TUTU_METRICS = [Uptime, SystemLoad, Memory]
+```
 3. Add urls to your project's urls.py:
 
 In Django 1.11:
 
-    url('tutu/', include("tutu.urls"))
-    
+```python
+url('tutu/', include("tutu.urls"))
+```
+
 or with Django 3.0:
 
-    path('tutu/', include("tutu.urls"))
-    
+```python
+path('tutu/', include("tutu.urls"))
+```
 4. Run `manage.py migrate tutu` to generate the databse tables.
 
 5. Add the `tutu_tick` management command to your system's crontab and have it run every 5 minutes (or however often you would like)
 
-    $ crontab -e
-    
-    \* \* \* \* \*/5 python /path/to/manage.py tutu_tick
-    
+```console
+crontab -e
+* * * * */5 python /path/to/manage.py tutu_tick
+````
 6. Point your browser to `/tutu` to see pretty graphs.
