@@ -54,7 +54,7 @@
             traces.forEach(function(trace){
               trace['y'] = trace['y'].map(x => x / 1024 ** (i+1));
             });
-            ret =[traces, unit + "byte"];
+            ret =[traces, unit + "bytes"];
             return true;
           }
 

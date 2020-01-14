@@ -238,6 +238,8 @@ class DiskSpace(Metric):
         return column
 
 class Memory(Metric):
+    yaxis_title = "_bytes"
+
     def make_title(self):
         if self.dimension.endswith("used"):
             return "Memory Used"
@@ -255,6 +257,8 @@ class Memory(Metric):
             return mem.percent
         if self.dimension == 'percentage_free':
             return 100 - mem.percent
+        if self.dimension == 'free':
+            return mem.available
 
         return getattr(mem, self.dimension)
 

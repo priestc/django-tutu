@@ -102,6 +102,34 @@ class Tick(models.Model):
         print("matrix took: %s" % (timezone.now() - t0))
         return rows
 
+    @classmethod
+    def new_make_matrix(cls, machine, to_json=False):
+        t0 = timezone.now()
+        metric_names = [x.internal_name for x in get_installed_metrics()]
+
+        prs = PollResult.objects.filter(success=True).order_by('tick__date')
+        prs = prs.filter(metric_name__in=metric_names)
+        prs = prs.values('tick__date', 'result', 'metric_name')
+        initialize_row = lambda: [None] * (len(metric_names) + 1)
+
+        rows = []
+        row = initialize_row()
+
+        for pr in prs:
+            date = pr['tick__date']
+            result = pr['result']
+            name = pr['metric_name']
+            print(date, result, name)
+
+            if date != row[0]:
+                row = initialize_row()
+                rows.append(row)
+
+
+        return
+        print("new matrix took: %s" % (timezone.now() - t0))
+        return rows
+
 class PollResult(models.Model):
     metric_name = models.TextField()
     tick = models.ForeignKey(Tick, on_delete=models.CASCADE)

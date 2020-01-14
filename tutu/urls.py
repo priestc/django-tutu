@@ -9,5 +9,4 @@ urlpatterns = [
     url(r'^(?P<machine>[\w\.-]+)$', show_machine_graphs, name="show_machine_graphs"),
     url(r'^(?P<machine>[\w\.-]+)/matrix$', get_matrix, name='get_matrix'),
     url(r'^(?P<machine>[\w\.-]+)/(?P<metric>\w+)', get_graph_data, name='get_graph_data'),
-
 ]
