@@ -263,4 +263,20 @@ class Memory(Metric):
         return getattr(mem, self.dimension)
 
 class CPU(Metric):
-    pass
+    yaxis_title = "Percent"
+
+    def make_title(self):
+        if self.dimension.endswith("used"):
+            return "CPU Percentage Used"
+        return "CPU Percentage Free"
+
+    def __init__(self, dimension='percentage_used', *args, **kwargs):
+        self.dimension = dimension
+        super(CPU, self).__init__(*args, **kwargs)
+
+    def poll(self):
+        mem = psutil.virtual_memory()
+        if self.dimension == 'percentage_used':
+            return psutil.cpu_percent()
+        if self.dimension == 'percentage_free':
+            return 100 - psutil.cpu_percent()

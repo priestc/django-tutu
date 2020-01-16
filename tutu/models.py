@@ -79,12 +79,12 @@ class Tick(models.Model):
             tick.delete()
 
     @classmethod
-    def make_matrix(cls, machine, to_json=False):
+    def old_make_matrix(cls, machine, to_json=False):
         t0 = timezone.now()
         ticks = cls.objects.filter(machine=machine).exclude(pollresult__isnull=True)
         rows = []
         current_tz = timezone.get_current_timezone()
-        for tick in ticks:
+        for tick in ticks.order_by('date'):
             row = [current_tz.normalize(tick.date).isoformat()]
             for metric in get_installed_metrics():
                 pr = tick.pollresult_set.filter(metric_name=metric.internal_name, success=True)
@@ -103,7 +103,7 @@ class Tick(models.Model):
         return rows
 
     @classmethod
-    def new_make_matrix(cls, machine, to_json=False):
+    def make_matrix(cls, machine, to_json=False):
         t0 = timezone.now()
         column_numbers = get_column_number_and_instance()
 
@@ -111,13 +111,13 @@ class Tick(models.Model):
         prs = prs.filter(metric_name__in=column_numbers.keys())
         prs = prs.values('tick__date', 'result', 'metric_name')
         initialize_row = lambda: [None] * (len(column_numbers) + 1)
-
+        current_tz = timezone.get_current_timezone()
 
         rows = []
         row = initialize_row()
 
         for pr in prs:
-            date = pr['tick__date'].isoformat()
+            date = current_tz.normalize(pr['tick__date']).isoformat()
             column_number, metric = column_numbers[pr['metric_name']]
             result = metric.result_to_matrix(json.loads(pr['result']))
 
@@ -130,8 +130,8 @@ class Tick(models.Model):
                 row[0] = date
 
             row[column_number] = result
-            rows.append(row)
 
+        rows.append(row)
         print("new matrix took: %s" % (timezone.now() - t0))
         return rows
 
