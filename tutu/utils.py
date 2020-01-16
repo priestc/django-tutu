@@ -28,6 +28,12 @@ def get_metrics_from_names(metric_names):
             metric_list.append(metric)
     return metric_list
 
+def get_column_number_and_instance():
+    column_numbers = {}
+    for i, metric in enumerate(get_installed_metrics()):
+        column_numbers[metric.internal_name] = [i+1, metric]
+    return column_numbers
+
 ######################################################
 ######################################################
 

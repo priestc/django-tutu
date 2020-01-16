@@ -6,7 +6,7 @@ from django.utils import timezone
 import socket
 import time
 import json
-from tutu.utils import get_installed_metrics
+from tutu.utils import get_installed_metrics, get_column_number_and_instance
 
 class FakeException(BaseException):
     pass
@@ -105,28 +105,33 @@ class Tick(models.Model):
     @classmethod
     def new_make_matrix(cls, machine, to_json=False):
         t0 = timezone.now()
-        metric_names = [x.internal_name for x in get_installed_metrics()]
+        column_numbers = get_column_number_and_instance()
 
         prs = PollResult.objects.filter(success=True).order_by('tick__date')
-        prs = prs.filter(metric_name__in=metric_names)
+        prs = prs.filter(metric_name__in=column_numbers.keys())
         prs = prs.values('tick__date', 'result', 'metric_name')
-        initialize_row = lambda: [None] * (len(metric_names) + 1)
+        initialize_row = lambda: [None] * (len(column_numbers) + 1)
+
 
         rows = []
         row = initialize_row()
 
         for pr in prs:
-            date = pr['tick__date']
-            result = pr['result']
-            name = pr['metric_name']
-            print(date, result, name)
+            date = pr['tick__date'].isoformat()
+            column_number, metric = column_numbers[pr['metric_name']]
+            result = metric.result_to_matrix(json.loads(pr['result']))
 
-            if date != row[0]:
-                row = initialize_row()
+            if not row[0]:
+                row[0] = date
+
+            elif row[0] != date:
                 rows.append(row)
+                row = initialize_row()
+                row[0] = date
 
+            row[column_number] = result
+            rows.append(row)
 
-        return
         print("new matrix took: %s" % (timezone.now() - t0))
         return rows
 
