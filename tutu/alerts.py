@@ -1,14 +1,50 @@
-class Alert(object):
+from django.core.mail import send_mail
+
+class AlertMode(object):
+    def __init__(self, actions, do_alert):
+        self.actions = actions
+        self.do_alert = do_alert
+
     def perform(self, result, metric, verbose):
-        if verbose:
-            print("Doing alert", metric)
+        if self.do_alert(result) and self.should_alert():
+            if verbose: print("Doing alert: %s" % metric)
+            for alert_action in self.actions:
+                alert_action.action(result, metric, verbose)
+        else:
+            if verbose: print("Not doing alert: %s" % metric)
 
-class EmailAlert(Alert):
-    def __init__(self, address):
-        self.address = address
 
-class IRCAlert(Alert):
+class Once(AlertMode):
     pass
 
-class DiscordAlert(Alert):
+class Every(AlertMode):
+    def should_alert(self):
+        return True
+
+class Backoff(AlertMode):
+    def should_alert(self):
+        pass
+
+#########################################################
+
+class AlertAction(object):
+    pass
+
+class EmailAlert(AlertAction):
+    def __init__(self, addresses):
+        self.addresses = addresses
+
+    def action(self, result, metric, verbose):
+        send_mail(
+            '[Tutu alert] %s' % metric.title,
+            'This metric has triggered an alert: %s' % result,
+            None,
+            self.addresses,
+            fail_silently=False,
+        )
+
+class IRCAlert(AlertAction):
+    pass
+
+class DiscordAlert(AlertAction):
     pass
