@@ -19,10 +19,23 @@ class Metric(object):
     def make_title(self):
         return self.title or self.internal_name
 
-    def __init__(self, poll_skip=0, internal_name=None, title=None):
+    def __init__(self, poll_skip=0, internal_name=None, title=None, alerts=None):
         self.internal_name = internal_name or self.make_default_internal_name()
         self.title = title or self.make_title()
         self.poll_skip = poll_skip
+        self.alerts = alerts
+
+    def perform_alert(self, result, verbose=False):
+        result = self.result_to_matrix(result)
+        for alert in self.alerts:
+            if len(alert) == 2:
+                alert_obj, lam = alert
+                mode = 'once'
+            if len(alert) == 3:
+                alert_obj, lam, mode = alert
+            if lam(result):
+                alert_obj.perform(result, metric, verbose)
+
 
     def make_default_internal_name(self):
         name = self.internal_name_from_args()

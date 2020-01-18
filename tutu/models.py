@@ -68,6 +68,8 @@ class Tick(models.Model):
             if test:
                 continue
 
+            metric.perform_alert(result, verbose=verbose)
+
             PollResult.objects.create(
                 metric_name=metric.internal_name,
                 tick=tick,
