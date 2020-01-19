@@ -159,3 +159,10 @@ class PollResult(models.Model):
 
     class Meta:
         get_latest_by = 'tick__date'
+
+
+class AlertHistory(models.Model):
+    tick = models.ForeignKey(Tick, on_delete=models.CASCADE)
+    alert_on = models.BooleanField()
+    do_alert = models.BooleanField()
+    alert_name = models.TextField()
