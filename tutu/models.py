@@ -164,5 +164,6 @@ class PollResult(models.Model):
 class AlertHistory(models.Model):
     tick = models.ForeignKey(Tick, on_delete=models.CASCADE)
     alert_on = models.BooleanField()
-    do_alert = models.BooleanField()
+    did_action = models.BooleanField(default=False)
     alert_name = models.TextField()
+    actions_performed = models.TextField()

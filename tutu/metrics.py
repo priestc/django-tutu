@@ -23,12 +23,13 @@ class Metric(object):
         self.internal_name = internal_name or self.make_default_internal_name()
         self.title = title or self.make_title()
         self.poll_skip = poll_skip
+        [setattr(alert, 'metric', self) for alert in alerts]
         self.alert_modes = alerts
 
     def perform_alert(self, result, verbose=False):
         result = self.result_to_matrix(result)
         for alert in self.alert_modes:
-            alert.perform(result, self, verbose)
+            alert.perform(result, verbose)
 
 
     def make_default_internal_name(self):
