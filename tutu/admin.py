@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 
 from django.db.models import Sum
-from tutu.models import Tick
+from tutu.models import Tick, AlertHistory
 
 class TickAdmin(admin.ModelAdmin):
     list_display = [
@@ -39,3 +39,4 @@ class TickAdmin(admin.ModelAdmin):
         return format_html("<br>".join(lines))
 
 admin.site.register(Tick, TickAdmin)
+admin.site.register(AlertHistory)

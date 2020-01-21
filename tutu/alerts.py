@@ -37,7 +37,23 @@ class AlertMode(object):
             self.metric.make_mini_hash(lam_to_str(self.do_alert))
         )
 
+    def alert_status(self):
+        from tutu.models import AlertHistory
+
+        try:
+            latest = AlertHistory.objects.filter(
+                tick__machine=self.metric.tick.machine,
+                alert_name=self.internal_name
+            ).latest()
+        except AlertHistory.DoesNotExist:
+            return "off"
+        return "on" if latest.alert_on else "off"
+
     def set_alert_on(self):
+        from tutu.models import AlertHistory
+
+        if self.alert_status() == 'on':
+            return
         return AlertHistory.objects.create(
             tick=self.metric.tick,
             alert_on=True,
@@ -45,6 +61,10 @@ class AlertMode(object):
         )
 
     def set_alert_off(self):
+        from tutu.models import AlertHistory
+
+        if self.alert_status() == 'off':
+            return
         return AlertHistory.objects.create(
             tick=self.metric.tick,
             alert_on=False,
@@ -68,7 +88,7 @@ class AlertMode(object):
 
 class Once(AlertMode):
     def should_alert(self):
-        pass
+        return True
 
 class Every(AlertMode):
     def should_alert(self):

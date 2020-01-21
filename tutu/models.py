@@ -167,3 +167,6 @@ class AlertHistory(models.Model):
     did_action = models.BooleanField(default=False)
     alert_name = models.TextField()
     actions_performed = models.TextField()
+
+    class Meta:
+        get_latest_by = 'tick__date'
