@@ -38,5 +38,15 @@ class TickAdmin(admin.ModelAdmin):
 
         return format_html("<br>".join(lines))
 
+class AlertHistoryAdmin(admin.ModelAdmin):
+    list_display = [
+        'fancy_tick', 'alert_name', 'actions_performed', 'alert_on'
+    ]
+
+    def fancy_tick(self, history):
+        return format_html(
+            "%s<br>%s" % (history.tick.machine, history.tick.date)
+        )
+
 admin.site.register(Tick, TickAdmin)
-admin.site.register(AlertHistory)
+admin.site.register(AlertHistory, AlertHistoryAdmin)

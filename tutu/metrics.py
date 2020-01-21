@@ -48,29 +48,26 @@ class Metric(object):
         return hashlib.sha256(directory.encode()).hexdigest()[:6]
 
     def make_special_tick(self, at_time, value):
-        from tutu.models import Tick, PollResult
-        t = Tick.objects.create(
+        t = self.tick.__class__.objects.create(
             machine=self.tick.machine, date=at_time
         )
-        PollResult.objects.create(
+        self.tick.PollResult.objects.create(
             tick=t, result=json.dumps(value), metric_name=self.internal_name,
             seconds_to_poll=0, success=True
         )
 
     @cached_property
     def previous_tick(self):
-        from tutu.models import Tick
         try:
-            return Tick.objects.filter(machine=self.tick.machine).order_by("-date")[1]
+            return self.tick.__class__.objects.filter(machine=self.tick.machine).order_by("-date")[1]
         except IndexError:
             return None
 
     @cached_property
     def previous_poll(self):
-        from tutu.models import PollResult
         try:
-            return PollResult.objects.filter(metric_name=self.internal_name).latest()
-        except PollResult.DoesNotExist:
+            return self.tick.PollResult.objects.filter(metric_name=self.internal_name).latest()
+        except self.tick.PollResult.DoesNotExist:
             return None
 
     def result_to_matrix(self, result):

@@ -25,6 +25,8 @@ class Tick(models.Model):
         tick = cls.objects.create(
             machine=machine, date=timezone.now()
         )
+        tick.AlertHistory = AlertHistory
+        tick.PollResult = PollResult
 
         if not test:
             if verbose:

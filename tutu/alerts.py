@@ -38,52 +38,60 @@ class AlertMode(object):
         )
 
     def alert_status(self):
-        from tutu.models import AlertHistory
-
         try:
-            latest = AlertHistory.objects.filter(
+            latest = self.metric.tick.AlertHistory.objects.filter(
                 tick__machine=self.metric.tick.machine,
                 alert_name=self.internal_name
             ).latest()
-        except AlertHistory.DoesNotExist:
+        except self.metric.tick.AlertHistory.DoesNotExist:
             return "off"
         return "on" if latest.alert_on else "off"
 
     def set_alert_on(self):
-        from tutu.models import AlertHistory
-
         if self.alert_status() == 'on':
             return
-        return AlertHistory.objects.create(
+        return self.metric.tick.AlertHistory.objects.create(
             tick=self.metric.tick,
             alert_on=True,
             alert_name=self.internal_name
         )
 
     def set_alert_off(self):
-        from tutu.models import AlertHistory
-
         if self.alert_status() == 'off':
             return
-        return AlertHistory.objects.create(
+        return self.metric.tick.AlertHistory.objects.create(
             tick=self.metric.tick,
             alert_on=False,
             alert_name=self.internal_name
         )
 
+    def set_action(self, history, performed):
+        if history:
+            history.did_action = True
+            history.actions_performed = "\n".join(performed)
+            history.save()
+            return
+
+        self.metric.tick.AlertHistory.objects.create(
+            tick=self.metric.tick,
+            alert_on=True, did_action=True,
+            alert_name=self.internal_name,
+            actions_performed="\n".join(performed)
+        )
+
+
     def perform(self, result, verbose):
         if self.do_alert(result):
+            if verbose: print("*** Alert On: %s" % self.internal_name)
             history = self.set_alert_on()
             if self.should_alert():
-                if verbose: print("*** Doing alert: %s" % self.internal_name)
                 performed = []
                 for alert_action in self.actions:
                     performed.append(alert_action.action(result, self.metric, verbose))
-                history.did_action = True
-                history.actions_performed = "\n".join(performed)
+                self.set_action(history, performed)
         else:
             self.set_alert_off()
-            if verbose: print("*** Not doing alert: %s" % self.internal_name)
+            if verbose: print("*** Alert off: %s" % self.internal_name)
 
 
 class Once(AlertMode):
@@ -108,6 +116,7 @@ class EmailAlert(AlertAction):
         self.addresses = addresses
 
     def action(self, result, metric, verbose):
+        if verbose: print("****** Sending email: %s" % self.addresses)
         send_mail(
             '[Tutu alert] %s' % metric.title,
             'This metric has triggered an alert: %s' % result,
