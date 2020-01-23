@@ -31,7 +31,6 @@ class Metric(object):
         for alert in self.alert_modes:
             alert.perform(result, verbose)
 
-
     def make_default_internal_name(self):
         name = self.internal_name_from_args()
         return self.__class__.__name__ + (name or "")

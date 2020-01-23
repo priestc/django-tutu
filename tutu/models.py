@@ -18,6 +18,12 @@ class Tick(models.Model):
     def __unicode__(self):
         return "%s - %s" % (self.machine, self.date)
 
+    @property
+    def machine_seq_id(self):
+        return Tick.objects.filter(
+            machine=self.machine, date__lt=self.date
+        ).count()
+
     @classmethod
     def make_tick(cls, metrics=[], test=False, verbose=False, catch=True):
         machine = socket.gethostname()
@@ -41,7 +47,7 @@ class Tick(models.Model):
             metric.tick = tick
 
             if not test:
-                if tick.id % (metric.poll_skip + 1) != 0:
+                if tick.machine_seq_id % (metric.poll_skip + 1) != 0:
                     if verbose:
                         print("%s: SKIPPED (took: %.2f)" % (
                             metric.internal_name, seconds

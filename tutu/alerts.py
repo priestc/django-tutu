@@ -25,9 +25,10 @@ def lam_to_str(l):
 class AlertMode(object):
     metric = None
 
-    def __init__(self, actions, do_alert):
+    def __init__(self, actions, do_alert, mute_after=False):
         self.actions = actions
         self.do_alert = do_alert
+        self.mute_after = mute_after
 
     @property
     def internal_name(self):
@@ -37,12 +38,15 @@ class AlertMode(object):
             self.metric.make_mini_hash(lam_to_str(self.do_alert))
         )
 
+    def get_history(self):
+        return self.metric.tick.AlertHistory.objects.filter(
+            tick__machine=self.metric.tick.machine,
+            alert_name=self.internal_name
+        )
+
     def alert_status(self):
         try:
-            latest = self.metric.tick.AlertHistory.objects.filter(
-                tick__machine=self.metric.tick.machine,
-                alert_name=self.internal_name
-            ).latest()
+            latest = self.get_history().latest()
         except self.metric.tick.AlertHistory.DoesNotExist:
             return "off"
         return "on" if latest.alert_on else "off"
@@ -79,11 +83,24 @@ class AlertMode(object):
             actions_performed="\n".join(performed)
         )
 
+    def count_actions(self):
+        actions = 0
+        for h in self.get_history().order_by('-tick__date'):
+            if not h.alert_on:
+                continue
+            actions += 1
+        return actions
 
     def perform(self, result, verbose):
         if self.do_alert(result):
             if verbose: print("*** Alert On: %s" % self.internal_name)
             history = self.set_alert_on()
+
+            if self.mute_after:
+                if self.count_actions() >= self.mute_after:
+                    if verbose: print("****** Muting alert")
+                    return
+
             if self.should_alert():
                 performed = []
                 for alert_action in self.actions:
