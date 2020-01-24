@@ -85,43 +85,48 @@ class AlertMode(object):
 
     def count_actions(self):
         actions = 0
-        for h in self.get_history().order_by('-tick__date'):
-            if not h.alert_on:
-                continue
+        for h in self.get_history().order_by('-tick__date').values('alert_on').iterator():
+            if not h['alert_on']:
+                break
             actions += 1
         return actions
 
     def perform(self, result, verbose):
         if self.do_alert(result):
             if verbose: print("*** Alert On: %s" % self.internal_name)
-            history = self.set_alert_on()
 
             if self.mute_after:
-                if self.count_actions() >= self.mute_after:
+                if self.count_actions() > self.mute_after:
                     if verbose: print("****** Muting alert")
                     return
 
-            if self.should_alert():
+            first_on = self.set_alert_on()
+
+            if first_on or self.should_do_action():
                 performed = []
                 for alert_action in self.actions:
                     performed.append(alert_action.action(result, self.metric, verbose))
-                self.set_action(history, performed)
+                self.set_action(first_on, performed)
         else:
             self.set_alert_off()
             if verbose: print("*** Alert off: %s" % self.internal_name)
 
 
 class Once(AlertMode):
-    def should_alert(self):
-        return True
+    def should_do_action(self):
+        return False
 
 class Every(AlertMode):
-    def should_alert(self):
+    def should_do_action(self):
         return True
 
 class Backoff(AlertMode):
-    def should_alert(self):
-        pass
+    def should_do_action(self):
+        already_done = self.count_actions()
+        offset = 2 ** (already_done - 1)
+        previous = self.get_history().latest()
+        msi_of_next_action = previous.tick.msi + offset
+        return msi_of_next_action == self.metric.tick.machine_seq_id
 
 #########################################################
 
@@ -134,6 +139,7 @@ class EmailAlert(AlertAction):
 
     def action(self, result, metric, verbose):
         if verbose: print("****** Sending email: %s" % self.addresses)
+        return "Send emails to: %s" % self.addresses
         send_mail(
             '[Tutu alert] %s' % metric.title,
             'This metric has triggered an alert: %s' % result,
@@ -141,7 +147,6 @@ class EmailAlert(AlertAction):
             self.addresses,
             fail_silently=False,
         )
-        return "Send emails to: %s" % self.addresses
 
 class IRCAlert(AlertAction):
     pass
