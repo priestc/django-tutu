@@ -2,6 +2,8 @@ from __future__ import print_function
 
 import dis
 import sys
+import subprocess
+
 from contextlib import contextmanager
 try:
     from cStringIO import StringIO
@@ -63,7 +65,7 @@ class AlertMode(object):
             alert_name=self.internal_name
         )
 
-    def set_action(self, history, performed):
+    def set_action(self, status, history, performed):
         if history:
             history.did_action = True
             history.actions_performed = "\n".join(performed)
@@ -72,7 +74,7 @@ class AlertMode(object):
 
         self.metric.tick.AlertHistory.objects.create(
             tick=self.metric.tick,
-            alert_on=True, did_action=True,
+            alert_on=status == "on", did_action=True,
             alert_name=self.internal_name,
             actions_performed="\n".join(performed)
         )
@@ -85,13 +87,13 @@ class AlertMode(object):
             actions += 1
         return actions
 
-    def do_actions(self, status, first_on, result, verbose):
+    def do_actions(self, status, history, result, verbose):
         performed = []
         for alert_action in self.actions:
             performed.append(alert_action.action(
                 result, self.metric, status, verbose
             ))
-        self.set_action(first_on, performed)
+        self.set_action(status, history, performed)
 
     def perform(self, result, verbose):
         if self.do_alert(result):
@@ -103,14 +105,15 @@ class AlertMode(object):
                     return
 
             first_on = self.set_alert_status("on")
-
             if first_on or self.should_do_action(verbose):
                 self.do_actions("on", first_on, result, verbose)
         else:
-            first_on = self.set_alert_status("off")
-            if self.notify_when_off:
-                self.do_actions("off", first_on, result, verbose)
             if verbose: print("*** Alert off: %s" % self.internal_name)
+
+            first_off = self.set_alert_status("off")
+            if first_off and self.notify_when_off:
+                self.do_actions("off", first_off, result, verbose)
+
 
 
 class Once(AlertMode):
@@ -123,8 +126,12 @@ class Every(AlertMode):
 
 class Backoff(AlertMode):
 
-    def __init__(self, offset=lambda x: 2**(x-1), *args, **kwargs):
-        self.offset = offset
+    def __init__(self, *args, **kwargs):
+        if 'offset' in kwargs:
+            self.offset = kwargs.pop("offset")
+        else:
+            self.offset = lambda x: 2**(x-1)
+
         super(Backoff, self).__init__(*args, **kwargs)
 
     def should_do_action(self, verbose):
@@ -135,7 +142,7 @@ class Backoff(AlertMode):
         if verbose:
             ticks_until = msi_of_next_action - self.metric.tick.machine_seq_id
             print("Ticks until next action:", ticks_until)
-        return msi_of_next_action == self.metric.tick.machine_seq_id
+        return msi_of_next_action <= self.metric.tick.machine_seq_id
 
 #########################################################
 
@@ -164,8 +171,13 @@ class EmailAlert(AlertAction):
             fail_silently=False,
         )
 
-class IRCAlert(AlertAction):
-    pass
+class RunCommand(AlertAction):
+    def __init__(self, command):
+        self.command = command
+
+    def action(self, result, metric, status, verbose):
+        output = subprocess.check_output(self.command).decode("utf8")
+        return output
 
 class DiscordAlert(AlertAction):
     pass
