@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import dis
 import sys
 from contextlib import contextmanager
@@ -83,6 +85,14 @@ class AlertMode(object):
             actions += 1
         return actions
 
+    def do_actions(self, status, first_on, result, verbose):
+        performed = []
+        for alert_action in self.actions:
+            performed.append(alert_action.action(
+                result, self.metric, status, verbose
+            ))
+        self.set_action(first_on, performed)
+
     def perform(self, result, verbose):
         if self.do_alert(result):
             if verbose: print("*** Alert On: %s" % self.internal_name)
@@ -94,32 +104,37 @@ class AlertMode(object):
 
             first_on = self.set_alert_status("on")
 
-            if first_on or self.should_do_action():
-                performed = []
-                for alert_action in self.actions:
-                    performed.append(alert_action.action(result, self.metric, verbose))
-                self.set_action(first_on, performed)
+            if first_on or self.should_do_action(verbose):
+                self.do_actions("on", first_on, result, verbose)
         else:
+            first_on = self.set_alert_status("off")
             if self.notify_when_off:
-                self.do_actions("off")
-            self.set_alert_status("off")
+                self.do_actions("off", first_on, result, verbose)
             if verbose: print("*** Alert off: %s" % self.internal_name)
 
 
 class Once(AlertMode):
-    def should_do_action(self):
+    def should_do_action(self, verbose):
         return False
 
 class Every(AlertMode):
-    def should_do_action(self):
+    def should_do_action(self, verbose):
         return True
 
 class Backoff(AlertMode):
-    def should_do_action(self):
+
+    def __init__(self, offset=lambda x: 2**(x-1), *args, **kwargs):
+        self.offset = offset
+        super(Backoff, self).__init__(*args, **kwargs)
+
+    def should_do_action(self, verbose):
         already_done = self.count_actions()
-        offset = 2 ** (already_done - 1)
+        offset = self.offset(already_done)
         previous = self.get_history().latest()
         msi_of_next_action = previous.tick.machine_seq_id + offset
+        if verbose:
+            ticks_until = msi_of_next_action - self.metric.tick.machine_seq_id
+            print("Ticks until next action:", ticks_until)
         return msi_of_next_action == self.metric.tick.machine_seq_id
 
 #########################################################
@@ -132,11 +147,18 @@ class EmailAlert(AlertAction):
         self.addresses = addresses
 
     def action(self, result, metric, status, verbose):
-        if verbose: print("****** Sending email: %s" % self.addresses)
+        if verbose: print("****** Sending %s email: %s" % (
+            status, self.addresses
+        ))
         return "Send emails to: %s" % self.addresses
+
+        title = '[Tutu alert %s] %s on %s' % (
+            status, metric.title, metric.tick.machine
+        )
+
         send_mail(
-            '[Tutu alert] %s' % metric.title,
-            'This metric has triggered an alert: %s' % result,
+            title,
+            'This metric has triggered an alert %s: %s' % (status, result),
             None,
             self.addresses,
             fail_silently=False,
