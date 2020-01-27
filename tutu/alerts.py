@@ -90,8 +90,9 @@ class AlertMode(object):
     def do_actions(self, status, history, result, verbose):
         performed = []
         for alert_action in self.actions:
+            alert_action.verbose = verbose
             performed.append(alert_action.action(
-                result, self.metric, status, verbose
+                result, self.metric, status, self
             ))
         self.set_action(status, history, performed)
 
@@ -147,14 +148,18 @@ class Backoff(AlertMode):
 #########################################################
 
 class AlertAction(object):
-    pass
+    verbose = False
+
+    def print(self, *a, **k):
+        a0 = a[0]
+        if self.verbose: print("****** " + a0, *a[1:], **k)
 
 class EmailAlert(AlertAction):
     def __init__(self, addresses):
         self.addresses = addresses
 
-    def action(self, result, metric, status, verbose):
-        if verbose: print("****** Sending %s email: %s" % (
+    def action(self, result, metric, status, alert):
+        self.print("Sending %s email: %s" % (
             status, self.addresses
         ))
         return "Send emails to: %s" % self.addresses
@@ -162,21 +167,24 @@ class EmailAlert(AlertAction):
         title = '[Tutu alert %s] %s on %s' % (
             status, metric.title, metric.tick.machine
         )
+        body = 'This metric has triggered an alert %s: %s' % (status, result),
 
         send_mail(
-            title,
-            'This metric has triggered an alert %s: %s' % (status, result),
-            None,
-            self.addresses,
-            fail_silently=False,
+            title, body, None, self.addresses, fail_silently=False,
         )
 
 class RunCommand(AlertAction):
     def __init__(self, command):
         self.command = command
 
-    def action(self, result, metric, status, verbose):
-        output = subprocess.check_output(self.command).decode("utf8")
+    def action(self, result, metric, status, alert):
+        filled_in_command = self.command.format(
+            result=result, alert=alert, metric=metric, status=status,
+            action=self
+        )
+        self.print(filled_in_command)
+        output = subprocess.check_output(filled_in_command.split(" ")).decode("utf8")
+        self.print("Output:", output)
         return output
 
 class DiscordAlert(AlertAction):
