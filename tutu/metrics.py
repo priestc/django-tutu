@@ -1,5 +1,6 @@
 from __future__ import division
 
+import re
 import os
 import subprocess
 import psutil
@@ -29,7 +30,8 @@ class Metric(object):
     def perform_alert(self, result, verbose=False):
         result = self.result_to_matrix(result)
         for alert in self.alert_modes:
-            alert.perform(result, verbose)
+            alert.verbose = verbose
+            alert.perform(result)
 
     def make_default_internal_name(self):
         name = self.internal_name_from_args()
@@ -284,3 +286,27 @@ class CPU(Metric):
             return psutil.cpu_percent()
         if self.dimension == 'percentage_free':
             return 100 - psutil.cpu_percent()
+
+class Nginx(Metric):
+    lineformat = re.compile( r"""(?P<ipaddress>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}) - (?P<remoteuser>.+) \[(?P<dateandtime>\d{2}\/[a-z]{3}\/\d{4}:\d{2}:\d{2}:\d{2} (\+|\-)\d{4})\] ((\"(?P<method>.+) )(?P<url>.+)(http\/[1-2]\.[0-9]")) (?P<statuscode>\d{3}) (?P<bytessent>\d+) (["](?P<refferer>(\-)|(.+))["]) (["](?P<useragent>.+)["])""", re.IGNORECASE)
+    def __init__(self, log_path="/var/log/nginx/access.log", interval=5 *args, **kwargs):
+        self.dimension = dimension
+        super(Nginx, self).__init__(*args, **kwargs)
+
+    def poll(self):
+        log = open(self.log_path).readlines()
+        log.reverse()
+        now = timezone.now()
+        interval = datetime.timedelta(minutes=5)
+
+        for i, line in enumerate(log):
+            result = re.search(self.lineformat)
+            data = result.groupdict()
+            print(data['dateandtime'])
+            dt = datetime.datetime.strptime(data['dateandtime'], self.dateformat)
+
+            age = now - dt
+            if age > interval:
+                break
+
+        return i / interval.total_seconds()

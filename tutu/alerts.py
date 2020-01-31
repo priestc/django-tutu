@@ -26,8 +26,16 @@ def lam_to_str(l):
         dis.dis(l)
     return out.getvalue()
 
-class AlertMode(object):
+class Log(object):
+    log_prefix = ""
+    verbose = False
+
+    def log(self, *a, **k):
+        if self.verbose: print(self.log_prefix, *a, **k)
+
+class AlertMode(Log):
     metric = None
+    log_prefix = "***"
 
     def __init__(self, actions, do_alert, mute_after=False, notify_when_off=False):
         self.actions = actions
@@ -87,42 +95,42 @@ class AlertMode(object):
             actions += 1
         return actions
 
-    def do_actions(self, status, history, result, verbose):
+    def do_actions(self, status, history, result):
         performed = []
         for alert_action in self.actions:
-            alert_action.verbose = verbose
+            alert_action.verbose = self.verbose
             performed.append(alert_action.action(
                 result, self.metric, status, self
             ))
         self.set_action(status, history, performed)
 
-    def perform(self, result, verbose):
+    def perform(self, result):
         if self.do_alert(result):
-            if verbose: print("*** Alert On: %s" % self.internal_name)
+            self.log("Alert On: %s" % self.internal_name)
 
             if self.mute_after:
                 if self.count_actions() > self.mute_after:
-                    if verbose: print("****** Muting alert")
+                    self.log("Muting alert")
                     return
 
             first_on = self.set_alert_status("on")
-            if first_on or self.should_do_action(verbose):
-                self.do_actions("on", first_on, result, verbose)
+            if first_on or self.should_do_action():
+                self.do_actions("on", first_on, result)
         else:
-            if verbose: print("*** Alert off: %s" % self.internal_name)
+            self.log("Alert off: %s" % self.internal_name)
 
             first_off = self.set_alert_status("off")
             if first_off and self.notify_when_off:
-                self.do_actions("off", first_off, result, verbose)
+                self.do_actions("off", first_off, result)
 
 
 
 class Once(AlertMode):
-    def should_do_action(self, verbose):
+    def should_do_action(self):
         return False
 
 class Every(AlertMode):
-    def should_do_action(self, verbose):
+    def should_do_action(self):
         return True
 
 class Backoff(AlertMode):
@@ -135,43 +143,40 @@ class Backoff(AlertMode):
 
         super(Backoff, self).__init__(*args, **kwargs)
 
-    def should_do_action(self, verbose):
+    def should_do_action(self):
         already_done = self.count_actions()
         offset = self.offset(already_done)
         previous = self.get_history().latest()
         msi_of_next_action = previous.tick.machine_seq_id + offset
-        if verbose:
-            ticks_until = msi_of_next_action - self.metric.tick.machine_seq_id
-            print("Ticks until next action:", ticks_until)
+        ticks_until = msi_of_next_action - self.metric.tick.machine_seq_id
+        if ticks_until == 0:
+            ticks_until = self.offset(already_done + 1)
+        self.log("Ticks until next action:", ticks_until)
         return msi_of_next_action <= self.metric.tick.machine_seq_id
 
 #########################################################
 
-class AlertAction(object):
-    verbose = False
-
-    def print(self, *a, **k):
-        a0 = a[0]
-        if self.verbose: print("****** " + a0, *a[1:], **k)
+class AlertAction(Log):
+    log_prefix = "******"
 
 class EmailAlert(AlertAction):
     def __init__(self, addresses):
         self.addresses = addresses
 
     def action(self, result, metric, status, alert):
-        self.print("Sending %s email: %s" % (
+        self.log("Sending %s email: %s" % (
             status, self.addresses
         ))
-        return "Send emails to: %s" % self.addresses
 
         title = '[Tutu alert %s] %s on %s' % (
             status, metric.title, metric.tick.machine
         )
-        body = 'This metric has triggered an alert %s: %s' % (status, result),
+        body = 'This metric has triggered an alert %s: %s' % (status, result)
 
         send_mail(
             title, body, None, self.addresses, fail_silently=False,
         )
+        return "Send emails to: %s" % self.addresses
 
 class RunCommand(AlertAction):
     def __init__(self, command):
@@ -182,10 +187,10 @@ class RunCommand(AlertAction):
             result=result, alert=alert, metric=metric, status=status,
             action=self
         )
-        self.print(filled_in_command)
+        self.log("Command:", filled_in_command)
         output = subprocess.check_output(filled_in_command.split(" ")).decode("utf8")
-        self.print("Output:", output)
-        return output
+        self.log("Output:", output)
+        return filled_in_command + "\n" + output
 
 class DiscordAlert(AlertAction):
     pass
