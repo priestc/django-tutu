@@ -288,9 +288,12 @@ class CPU(Metric):
             return 100 - psutil.cpu_percent()
 
 class Nginx(Metric):
-    lineformat = re.compile( r"""(?P<ipaddress>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}) - (?P<remoteuser>.+) \[(?P<dateandtime>\d{2}\/[a-z]{3}\/\d{4}:\d{2}:\d{2}:\d{2} (\+|\-)\d{4})\] ((\"(?P<method>.+) )(?P<url>.+)(http\/[1-2]\.[0-9]")) (?P<statuscode>\d{3}) (?P<bytessent>\d+) (["](?P<refferer>(\-)|(.+))["]) (["](?P<useragent>.+)["])""", re.IGNORECASE)
-    def __init__(self, log_path="/var/log/nginx/access.log", interval=5 *args, **kwargs):
-        self.dimension = dimension
+    lineformat = re.compile(r"""(?P<ipaddress>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}) - (?P<remoteuser>.+) \[(?P<dateandtime>\d{2}\/[a-z]{3}\/\d{4}:\d{2}:\d{2}:\d{2} (\+|\-)\d{4})\] ((\"(?P<method>.+) )(?P<url>.+)(http\/[1-2]\.[0-9]")) (?P<statuscode>\d{3}) (?P<bytessent>\d+) (["](?P<refferer>(\-)|(.+))["]) (["](?P<useragent>.+)["])""", re.IGNORECASE)
+    dateformat = "%d/%b/%Y:%H:%M:%S %z"
+
+    def __init__(self, log_path="/var/log/nginx/access.log", interval=5, *args, **kwargs):
+        self.log_path = log_path
+        self.interval = interval
         super(Nginx, self).__init__(*args, **kwargs)
 
     def poll(self):
@@ -300,13 +303,15 @@ class Nginx(Metric):
         interval = datetime.timedelta(minutes=5)
 
         for i, line in enumerate(log):
-            result = re.search(self.lineformat)
+            result = re.search(self.lineformat, line)
+            if not result:
+                continue
+
             data = result.groupdict()
-            print(data['dateandtime'])
             dt = datetime.datetime.strptime(data['dateandtime'], self.dateformat)
+            print(data['dateandtime'], dt)
+            #age = now - dt
+            #if age > interval:
+            #    break
 
-            age = now - dt
-            if age > interval:
-                break
-
-        return i / interval.total_seconds()
+        return #i / interval.total_seconds()
