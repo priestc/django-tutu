@@ -2,11 +2,14 @@ from django.http import JsonResponse, Http404
 from django.template.response import TemplateResponse
 from tutu.models import Tick, PollResult
 from tutu.utils import get_metrics_from_names
+from django.contrib.admin.views.decorators import staff_member_required
 
+@staff_member_required
 def list_machines(request):
     machine_list = list(Tick.objects.values_list("machine", flat=True).distinct())
     return TemplateResponse(request, "list_machines.html", locals())
 
+@staff_member_required
 def show_machine_graphs(request, machine):
     ticks = Tick.objects.filter(machine=machine)
     if not ticks.exists():
@@ -16,6 +19,7 @@ def show_machine_graphs(request, machine):
     )
     return TemplateResponse(request, "show_graphs.html", locals())
 
+@staff_member_required
 def get_graph_data(request, machine, metric):
     ticks = Tick.objects.filter(machine=machine)
     if not ticks.exists():
@@ -26,6 +30,7 @@ def get_graph_data(request, machine, metric):
 
     return JsonResponse(PollResult.get_graph_data(machine, metric))
 
+@staff_member_required
 def get_matrix(request, machine):
     ticks = Tick.objects.filter(machine=machine)
     if not ticks.exists():
