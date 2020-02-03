@@ -7,6 +7,7 @@ import psutil
 import datetime
 import json
 import hashlib
+from collections import defaultdict
 
 from django.utils import timezone
 from django.utils.functional import cached_property
@@ -294,32 +295,73 @@ class Nginx(Metric):
     title = "Nginx transactions per second"
     yaxis_title = "Transactions per second"
 
-    def __init__(self, log_path="/var/log/nginx/access.log", interval=None, *args, **kwargs):
+    def __init__(self, log_path="/var/log/nginx/access.log", interval=None, now=None, *args, **kwargs):
         self.log_path = log_path
         self.interval = interval
+        self.now = now
         super(Nginx, self).__init__(*args, **kwargs)
 
-    def poll(self):
+    def get_interval(self):
+        if not self.previous_poll and not self.interval:
+            return datetime.timedelta(minutes=5)
+        elif not self.interval and self.previous_poll:
+            return self.tick.date - self.previous_poll.tick.date
+        else:
+            return datetime.timedelta(minutes=self.interval)
+
+    def parse_dt(self, dateandtime):
+        return datetime.datetime.strptime(dateandtime, self.dateformat)
+
+    def filter_by_interval(self, interval):
         log = open(self.log_path).readlines()
         log.reverse()
-        now = self.tick.date
-
-        if not self.previous_poll and not self.interval:
-            interval = datetime.timedelta(minutes=5)
-        elif not self.interval and self.previous_poll:
-            interval = self.tick.date - self.previous_poll.tick.date
+        if self.now:
+            now = self.parse_dt(self.now)
         else:
-            interval = datetime.timedelta(minutes=self.interval)
+            now = self.tick.date
 
-        for i, line in enumerate(log):
+        lines = []
+        for line in log:
             result = re.search(self.lineformat, line)
             if not result:
                 continue
 
             data = result.groupdict()
-            dt = datetime.datetime.strptime(data['dateandtime'], self.dateformat)
-            age = now - dt
-            if age > interval:
+            dt = self.parse_dt(data['dateandtime'])
+            if now - dt > interval:
                 break
+            lines.append(data)
 
-        return i / interval.total_seconds()
+        return lines
+
+    def poll(self):
+        interval = self.get_interval()
+        lines = self.filter_by_interval(interval)
+        return len(lines) / interval.total_seconds()
+
+class NginxByStatusCode(Nginx):
+
+    title = "Nginx Activity by Status Code"
+    yaxis_title = "Transactions per second"
+
+    @property
+    def traces(self):
+        returned = []
+        for code in self.by_codes:
+            returned.append({"type": "scatter", "name": code})
+        return returned
+
+    def __init__(self, by_codes=[200, 404, 401, 403, 302], *args, **kwargs):
+        self.by_codes = by_codes
+        super(NginxByStatusCode, self).__init__(*args, **kwargs)
+
+    def poll(self):
+        interval = self.get_interval()
+        lines = self.filter_by_interval(interval)
+
+        result = defaultdict(lambda: 0)
+        for line in lines:
+            code = int(line['statuscode'])
+            result[code] += 1
+
+        return {x: y / interval.total_seconds() for x,y in result.items()}
