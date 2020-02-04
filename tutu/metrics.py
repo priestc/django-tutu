@@ -292,7 +292,7 @@ class Nginx(Metric):
     lineformat = re.compile(r"""(?P<ipaddress>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}) - (?P<remoteuser>.+) \[(?P<dateandtime>\d{2}\/[a-z]{3}\/\d{4}:\d{2}:\d{2}:\d{2} (\+|\-)\d{4})\] ((\"(?P<method>.+) )(?P<url>.+)(http\/[1-2]\.[0-9]")) (?P<statuscode>\d{3}) (?P<bytessent>\d+) (["](?P<refferer>(\-)|(.+))["]) (["](?P<useragent>.+)["])""", re.IGNORECASE)
     dateformat = "%d/%b/%Y:%H:%M:%S %z"
 
-    title = "Nginx transactions per second"
+    title = "Nginx Activity"
     yaxis_title = "Transactions per second"
 
     def __init__(self, log_path="/var/log/nginx/access.log", interval=None, now=None, *args, **kwargs):
@@ -351,9 +351,9 @@ class NginxByStatusCode(Nginx):
             returned.append({"type": "scatter", "name": code})
         return returned
 
-    def __init__(self, by_codes=[200, 404, 401, 403, 302], *args, **kwargs):
-        self.by_codes = by_codes
+    def __init__(self, by_codes=[200, 404, 401, 403, 302], unit="tps", *args, **kwargs):
         super(NginxByStatusCode, self).__init__(*args, **kwargs)
+        self.by_codes = by_codes
 
     def poll(self):
         interval = self.get_interval()
@@ -365,3 +365,23 @@ class NginxByStatusCode(Nginx):
             result[code] += 1
 
         return {x: y / interval.total_seconds() for x,y in result.items()}
+
+    def result_to_matrix(self, result):
+        column = []
+        percent = sum(result.values())
+        for code in self.by_codes:
+            if self.unit == 'tpm':
+                adjust = 1 / 60
+            if self.unit == 'percent':
+                adjust = percent
+            column.append(result.get(str(code), 0) / adjust)
+        return column
+
+class NginxPercentUniqueIP(Nginx):
+    def poll(self):
+        interval = self.get_interval()
+        lines = self.filter_by_interval(interval)
+        ips = set()
+        for line in lines:
+            ips.add(line['ipaddress'])
+        return len(ips) / len(lines) * 100
