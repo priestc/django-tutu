@@ -295,10 +295,10 @@ class Nginx(Metric):
     title = "Nginx Activity"
     yaxis_title = "Transactions per second"
 
-    def __init__(self, log_path="/var/log/nginx/access.log", interval=None, now=None, *args, **kwargs):
+    def __init__(self, log_path="/var/log/nginx/access.log", interval=None, start=None, *args, **kwargs):
         self.log_path = log_path
         self.interval = interval
-        self.now = now
+        self.start = start
         super(Nginx, self).__init__(*args, **kwargs)
 
     def get_interval(self):
@@ -315,10 +315,10 @@ class Nginx(Metric):
     def filter_by_interval(self, interval):
         log = open(self.log_path).readlines()
         log.reverse()
-        if self.now:
-            now = self.parse_dt(self.now)
+        if self.start:
+            start = self.parse_dt(self.start)
         else:
-            now = self.tick.date
+            start = self.tick.date
 
         lines = []
         for line in log:
@@ -328,8 +328,10 @@ class Nginx(Metric):
 
             data = result.groupdict()
             dt = self.parse_dt(data['dateandtime'])
-            if now - dt > interval:
+            if start - dt > interval:
                 break
+            if dt > start:
+                continue
             lines.append(data)
 
         return lines
@@ -342,7 +344,15 @@ class Nginx(Metric):
 class NginxByStatusCode(Nginx):
 
     title = "Nginx Activity by Status Code"
-    yaxis_title = "Transactions per second"
+
+    @property
+    def yaxis_title(self):
+        if self.unit == 'tps':
+            return "Transactions per second"
+        if self.unit == 'tpm':
+            return "Transactions per minute"
+
+        return "Percent"
 
     @property
     def traces(self):
@@ -354,6 +364,7 @@ class NginxByStatusCode(Nginx):
     def __init__(self, by_codes=[200, 404, 401, 403, 302], unit="tps", *args, **kwargs):
         super(NginxByStatusCode, self).__init__(*args, **kwargs)
         self.by_codes = by_codes
+        self.unit = unit
 
     def poll(self):
         interval = self.get_interval()
@@ -368,13 +379,15 @@ class NginxByStatusCode(Nginx):
 
     def result_to_matrix(self, result):
         column = []
-        percent = sum(result.values())
+        adjust = lambda x: x
+        if self.unit == 'tpm':
+            adjust = lambda x: x * 60
+        if self.unit == 'percent':
+            total = sum(result.values())
+            adjust = lambda x: 100 * x / total
+
         for code in self.by_codes:
-            if self.unit == 'tpm':
-                adjust = 1 / 60
-            if self.unit == 'percent':
-                adjust = percent
-            column.append(result.get(str(code), 0) / adjust)
+            column.append(adjust(result.get(str(code), 0)))
         return column
 
 class NginxPercentUniqueIP(Nginx):

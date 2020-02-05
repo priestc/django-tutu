@@ -51,7 +51,7 @@ def make_poll_results(metrics):
     for tick in Tick.objects.all():
         for item in metrics:
             metric = validate_metric(item)
-            result = random.random()
+            result = metric.poll()
             PollResult.objects.create(
                 tick=tick,
                 metric_name=metric.internal_name,
