@@ -357,8 +357,8 @@ class NginxByStatusCode(Nginx):
     @property
     def traces(self):
         returned = []
-        for code in self.by_codes:
-            returned.append({"type": "scatter", "name": code})
+        for code in self.by_codes + ['other']:
+            returned.append({"type": "scatter", "stackgroup": 'one', "name": code})
         return returned
 
     def __init__(self, by_codes=[200, 404, 401, 403, 302], unit="tps", *args, **kwargs):
@@ -379,18 +379,27 @@ class NginxByStatusCode(Nginx):
 
     def result_to_matrix(self, result):
         column = []
+        total = sum(result.values())
         adjust = lambda x: x
         if self.unit == 'tpm':
             adjust = lambda x: x * 60
         if self.unit == 'percent':
-            total = sum(result.values())
             adjust = lambda x: 100 * x / total
 
         for code in self.by_codes:
             column.append(adjust(result.get(str(code), 0)))
+
+        if self.unit == 'percent':
+            column.append(100 - sum(column))
+        else:
+            column.append(adjust(total) - sum(column))
+
         return column
 
 class NginxPercentUniqueIP(Nginx):
+    title = "Nginx Percent Unique IPs"
+    yaxis_title = "Percent IP Unique"
+
     def poll(self):
         interval = self.get_interval()
         lines = self.filter_by_interval(interval)
