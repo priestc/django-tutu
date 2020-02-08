@@ -37,11 +37,10 @@ def get_column_number_and_instance():
 ######################################################
 ######################################################
 
-def make_test_ticks(start_ago=datetime.timedelta(days=30)):
+def make_test_ticks(start, end):
     from tutu.models import Tick
-    now = datetime.datetime.now()
-    target = now - start_ago
-    while(target < now):
+    target = start
+    while(target < end):
         Tick.objects.create(date=target, machine="TestMachine")
         target += datetime.timedelta(minutes=5)
 
@@ -59,3 +58,11 @@ def make_poll_results(metrics):
                 success=True,
                 seconds_to_poll=1
             )
+
+def make_nginx_ticks():
+    from tutu.metrics import Nginx, NginxByStatusCode, NginxPercentUniqueIP, NginxBandwidth
+    n = Nginx()
+    start = n.parse_dt("27/Jan/2020:07:35:07 -0800")
+    end = n.parse_dt("31/Jan/2020:13:28:15 -0800")
+    make_test_ticks(start, end)
+    make_poll_results([n, NginxByStatusCode(), NginxPercentUniqueIP(), NginxBandwidth()])

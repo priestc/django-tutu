@@ -68,6 +68,10 @@
         if(ytitle == '_bytes') {
           [traces, ytitle] = translate_traces_for_bytes(traces);
         }
+        if(ytitle == '_bandwidth') {
+          [traces, ytitle] = translate_traces_for_bytes(traces);
+          ytitle = ytitle + " per second"
+        }
 
         Plotly.newPlot(
           div, traces,

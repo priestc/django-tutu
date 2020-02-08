@@ -389,11 +389,7 @@ class NginxByStatusCode(Nginx):
         for code in self.by_codes:
             column.append(adjust(result.get(str(code), 0)))
 
-        if self.unit == 'percent':
-            column.append(100 - sum(column))
-        else:
-            column.append(adjust(total) - sum(column))
-
+        column.append(adjust(total) - sum(column))
         return column
 
 class NginxPercentUniqueIP(Nginx):
@@ -403,7 +399,14 @@ class NginxPercentUniqueIP(Nginx):
     def poll(self):
         interval = self.get_interval()
         lines = self.filter_by_interval(interval)
-        ips = set()
-        for line in lines:
-            ips.add(line['ipaddress'])
+        ips = set(line['ipaddress'] for line in lines)
         return len(ips) / len(lines) * 100
+
+class NginxBandwidth(Nginx):
+    title = "Nginx Bandwidth Sent"
+    yaxis_title = "_bandwidth"
+
+    def poll(self):
+        interval = self.get_interval()
+        lines = self.filter_by_interval(interval)
+        return sum(int(x['bytessent']) for x in lines) / interval.total_seconds()
